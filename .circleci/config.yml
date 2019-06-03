@@ -27,19 +27,15 @@ jobs:
       - checkout
       - setup_remote_docker
       - run:
-          name: Install Docker client
+          name: Install mingw and windows build target
           command: |
             set -ex
 
-            apt-get update && apt-get install -y curl
+            apt-get update
+            apt-get install -y gcc-mingw-w64
 
-            docker="https://download.docker.com/linux/static/stable/x86_64/docker-17.03.0-ce.tgz"
-            
-            curl -SsLf "$docker" | tar zxvf - docker/docker -O > /usr/local/bin/docker
-            chmod +x /usr/local/bin/docker
-      - run:
-          name: Install rust-cross
-          command: cargo install cross
+            rustup target add x86_64-pc-windows-gnu
+            cat "misc/cargo-conf-mingw.toml" >> ~/.cargo/config
       - run:
           name: Build windows x86_64
           command: |
