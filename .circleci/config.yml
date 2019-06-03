@@ -67,6 +67,8 @@ jobs:
     docker:
       - image: alpine:3.9
     steps:
+      - run: add ca-certificates
+        command: apk add ca-certificates
       - attach_workspace:
           at: ./artifacts
       - run:
