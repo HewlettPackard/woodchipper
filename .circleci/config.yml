@@ -10,7 +10,7 @@ jobs:
           key: linux-{{ checksum "Cargo.lock" }}
       - run:
           name: Build static linux x86_64
-          command: cargo build --release
+          command: cargo build --release --locked
       - save_cache:
           key: linux-{{ checksum "Cargo.lock" }}
           paths:
@@ -47,7 +47,7 @@ jobs:
       - run:
           name: Build windows x86_64
           command: |
-            cargo build --release --target=x86_64-pc-windows-gnu
+            cargo build --release --target=x86_64-pc-windows-gnu --locked
       - save_cache:
           key: windows-{{ checksum "Cargo.lock" }}
           paths:
@@ -68,8 +68,8 @@ jobs:
       - image: alpine:3.9
     steps:
       - run: 
-          name: add ca-certificates
-          command: apk add ca-certificates
+          name: add publish dependencies
+          command: apk add ca-certificates tar curl
       - attach_workspace:
           at: ./artifacts
       - run:
