@@ -21,11 +21,10 @@ jobs:
 
   build-windows:
     docker:
-      - image: rust:1.35-slim-stretch
+      - image: clux/muslrust:stable-2019-04-24
     
     steps:
       - checkout
-      - setup_remote_docker
       - run:
           name: Install mingw and windows build target
           command: |
