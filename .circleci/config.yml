@@ -67,8 +67,9 @@ jobs:
     docker:
       - image: alpine:3.9
     steps:
-      - run: add ca-certificates
-        command: apk add ca-certificates
+      - run: 
+          name: add ca-certificates
+          command: apk add ca-certificates
       - attach_workspace:
           at: ./artifacts
       - run:
@@ -80,7 +81,7 @@ jobs:
       - run:
           name: publish release
           command: |
-            ghr -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete -draft ${VERSION} ./artifacts/
+            ghr -u ${GITHUB_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete -draft ${VERSION} ./artifacts/
 workflows:
   version: 2
   build-and-publish:
