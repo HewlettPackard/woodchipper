@@ -7,12 +7,12 @@ jobs:
     steps:
       - checkout
       - restore_cache:
-          key: build-linux-cache
+          key: linux-{{ checksum "Cargo.lock" }}
       - run:
           name: Build static linux x86_64
           command: cargo build --release
       - save_cache:
-          key: build-linux-cache
+          key: linux-{{ checksum "Cargo.lock" }}
           paths:
             - "~/.cargo"
             - "./target"
@@ -33,7 +33,7 @@ jobs:
     steps:
       - checkout
       - restore_cache:
-          key: build-windows-cache
+          key: windows-{{ checksum "Cargo.lock" }}
       - run:
           name: Install mingw and windows build target
           command: |
@@ -49,7 +49,7 @@ jobs:
           command: |
             cargo build --release --target=x86_64-pc-windows-gnu
       - save_cache:
-          key: build-windows-cache
+          key: windows-{{ checksum "Cargo.lock" }}
           paths:
             - "~/.cargo"
             - "./target"
