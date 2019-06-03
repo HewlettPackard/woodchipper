@@ -47,7 +47,7 @@ jobs:
       - run:
           name: Build windows x86_64
           command: |
-            cross build --release --target=x86_64-pc-windows-gnu
+            cargo build --release --target=x86_64-pc-windows-gnu
       - save_cache:
           key: build-windows-cache
           paths:
