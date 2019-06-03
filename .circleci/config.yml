@@ -30,9 +30,12 @@ jobs:
           name: Install Docker client
           command: |
             set -x
+
+            apt-get update && apt-get install -y curl
+
             docker="https://download.docker.com/linux/static/stable/x86_64/docker-17.03.0-ce.tgz"
             
-            wget "$docker" -O - | tar zxvf - docker/docker -O > /usr/local/bin/docker
+            curl -SsLf "$docker" | tar zxvf - docker/docker -O > /usr/local/bin/docker
       - run:
           name: Install rust-cross
           command: cargo install cross
