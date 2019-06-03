@@ -6,9 +6,16 @@ jobs:
       - image: clux/muslrust:stable-2019-04-24
     steps:
       - checkout
+      - restore_cache:
+          key: build-linux-cache
       - run:
           name: Build static linux x86_64
           command: cargo build --release
+      - save_cache:
+          key: build-linux-cache
+          paths:
+            - "~/.cargo"
+            - "./target"
       - run:
           name: Copy artifacts
           command: |
@@ -25,6 +32,8 @@ jobs:
     
     steps:
       - checkout
+      - restore_cache:
+          key: build-windows-cache
       - run:
           name: Install mingw and windows build target
           command: |
@@ -39,6 +48,11 @@ jobs:
           name: Build windows x86_64
           command: |
             cross build --release --target=x86_64-pc-windows-gnu
+      - save_cache:
+          key: build-windows-cache
+          paths:
+            - "~/.cargo"
+            - "./target"
       - run:
           name: Copy artifacts
           command: |
