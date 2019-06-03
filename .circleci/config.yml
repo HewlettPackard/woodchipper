@@ -1,0 +1,102 @@
+version: 2.1
+
+jobs:
+  build-linux:
+    docker:
+      - image: clux/muslrust:stable-2019-04-24
+    steps:
+      - checkout
+      - restore_cache:
+          key: linux-{{ checksum "Cargo.lock" }}
+      - run:
+          name: Build static linux x86_64
+          command: cargo build --release
+      - save_cache:
+          key: linux-{{ checksum "Cargo.lock" }}
+          paths:
+            - "~/.cargo"
+            - "./target"
+      - run:
+          name: Copy artifacts
+          command: |
+            mkdir ./artifacts
+            cp target/x86_64-unknown-linux-musl/release/woodchipper ./artifacts/woodchipper-x86_64-unknown-linux-musl
+      - persist_to_workspace:
+          root: ./artifacts
+          paths:
+            - woodchipper-x86_64-unknown-linux-musl
+
+  build-windows:
+    docker:
+      - image: clux/muslrust:stable-2019-04-24
+    
+    steps:
+      - checkout
+      - restore_cache:
+          key: windows-{{ checksum "Cargo.lock" }}
+      - run:
+          name: Install mingw and windows build target
+          command: |
+            set -ex
+
+            apt-get update
+            apt-get install -y gcc-mingw-w64
+
+            rustup target add x86_64-pc-windows-gnu
+            cat "misc/cargo-conf-mingw.toml" >> ~/.cargo/config
+      - run:
+          name: Build windows x86_64
+          command: |
+            cargo build --release --target=x86_64-pc-windows-gnu
+      - save_cache:
+          key: windows-{{ checksum "Cargo.lock" }}
+          paths:
+            - "~/.cargo"
+            - "./target"
+      - run:
+          name: Copy artifacts
+          command: |
+            mkdir ./artifacts
+            cp target/x86_64-pc-windows-gnu/release/woodchipper.exe ./artifacts/woodchipper-x86_64-pc-windows-gnu.exe
+      - persist_to_workspace:
+          root: ./artifacts
+          paths:
+            - woodchipper-x86_64-pc-windows-gnu.exe
+
+  publish:
+    docker:
+      - image: alpine:3.9
+    steps:
+      - attach_workspace:
+          at: ./artifacts
+      - run:
+          name: fetch ghr
+          command: |
+            set -x
+            ghr_url="https://github.com/tcnksm/ghr/releases/download/v0.12.1/ghr_v0.12.1_linux_amd64.tar.gz"
+            curl -SsLf "$ghr_url" | tar zxvf - --strip=1 --wildcards 'ghr_*/ghr' -C /usr/local/bin/
+      - run:
+          name: publish release
+          command: |
+            ghr -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete -draft ${VERSION} ./artifacts/
+workflows:
+  version: 2
+  build-and-publish:
+    jobs:
+      - build-linux:
+          filters:
+            tags:
+              only: /.*/
+      - build-windows:
+          filters:
+            tags:
+              only: /.*/
+      - publish:
+          requires:
+            - build-linux
+            - build-windows
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /.*/
