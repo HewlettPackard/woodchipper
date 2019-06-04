@@ -3,7 +3,7 @@ version: 2.1
 jobs:
   build-linux:
     docker:
-      - image: clux/muslrust:stable-2019-04-24
+      - image: clux/muslrust:1.35.0-stable
     steps:
       - checkout
       - restore_cache:
@@ -28,7 +28,7 @@ jobs:
 
   build-windows:
     docker:
-      - image: clux/muslrust:stable-2019-04-24
+      - image: rust:1.35-slim
     
     steps:
       - checkout
@@ -40,10 +40,10 @@ jobs:
             set -ex
 
             apt-get update
-            apt-get install -y gcc-mingw-w64
+            apt-get install -y gcc-mingw-w64 mingw-w64
 
             rustup target add x86_64-pc-windows-gnu
-            cat "misc/cargo-conf-mingw.toml" >> ~/.cargo/config
+            cat "misc/cargo-conf-mingw.toml" >> $CARGO_HOME/config
       - run:
           name: Build windows x86_64
           command: |
@@ -51,7 +51,6 @@ jobs:
       - save_cache:
           key: windows-{{ checksum "Cargo.lock" }}
           paths:
-            - "~/.cargo"
             - "./target"
       - run:
           name: Copy artifacts
