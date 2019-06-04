@@ -1,6 +1,7 @@
 // (C) Copyright 2019 Hewlett Packard Enterprise Development LP
 
 use std::cmp::max;
+use std::io::{self, Write};
 use std::sync::Arc;
 use std::sync::mpsc::Receiver;
 use std::thread::{self, JoinHandle};
@@ -94,7 +95,11 @@ pub fn plain_renderer(_: Arc<Config>, rx: Receiver<LogEntry>) -> JoinHandle<()> 
 
       if let Some(message) = entry.message {
         for line in plain_render(&message) {
-          println!("{}", line);
+          // println! may fail when piped to e.g. head
+          // see also: https://github.com/rust-lang/rust/issues/24821
+          if writeln!(io::stdout(), "{}", line).is_err() {
+            break;
+          }
         }
       }
     }
