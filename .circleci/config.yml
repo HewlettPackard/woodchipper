@@ -76,7 +76,10 @@ jobs:
           command: |
             set -x
             ghr_url="https://github.com/tcnksm/ghr/releases/download/v0.12.1/ghr_v0.12.1_linux_amd64.tar.gz"
-            curl -SsLf "$ghr_url" | tar zxvf - --strip=1 --wildcards 'ghr_*/ghr' -C /usr/local/bin/
+
+            pushd /usr/local/bin/
+            curl -SsLf "$ghr_url" | tar zxvf - --strip=1 --wildcards 'ghr_*/ghr'
+            popd
       - run:
           name: publish release
           command: |
