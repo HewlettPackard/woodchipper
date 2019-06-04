@@ -77,12 +77,14 @@ jobs:
             set -x
             ghr_url="https://github.com/tcnksm/ghr/releases/download/v0.12.1/ghr_v0.12.1_linux_amd64.tar.gz"
 
-            pushd /usr/local/bin/
+            cd /usr/local/bin/
             curl -SsLf "$ghr_url" | tar zxvf - --strip=1 --wildcards 'ghr_*/ghr'
-            popd
       - run:
           name: publish release
           command: |
+            set -x
+            pwd
+
             ghr -u ${GITHUB_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete -draft ${VERSION} ./artifacts/
 workflows:
   version: 2
