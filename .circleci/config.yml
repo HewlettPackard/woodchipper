@@ -85,7 +85,7 @@ jobs:
             set -x
             pwd
 
-            ghr -u ${GITHUB_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete -draft ${CIRCLE_TAG} ./artifacts/
+            ghr -c ${CIRCLE_SHA1} -delete -draft ${CIRCLE_TAG} ./artifacts/
 workflows:
   version: 2
   build-and-publish:
