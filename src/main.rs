@@ -34,9 +34,6 @@ mod renderer;
 
 use config::Config;
 
-// re: panic when piping to e.g. head
-//https://github.com/rust-lang/rust/issues/24821#issuecomment-96276655
-
 fn main() -> Result<(), Box<Error>> {
   let config = Arc::new(Config::from_args());
 
