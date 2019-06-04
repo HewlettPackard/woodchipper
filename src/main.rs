@@ -17,6 +17,7 @@ extern crate structopt;
 extern crate subprocess;
 
 use std::error::Error;
+use std::process;
 use std::sync::Arc;
 use std::sync::mpsc::channel;
 use std::time::Duration;
@@ -40,9 +41,21 @@ use config::Config;
 fn main() -> Result<(), Box<Error>> {
   let config = Arc::new(Config::from_args());
 
-  let (entry_tx, entry_rx) = channel();
-
   let renderer_impl = config.renderer.get_renderer(Arc::clone(&config));
+  let reader_impl = config.reader.get_reader(Arc::clone(&config));
+
+  if reader_impl == reader::read_null {
+    eprintln!(
+      "{}\n\n{}\n\n{}",
+      "error: no reader was detected, select a reader or pipe in some input",
+      Config::clap().get_matches().usage(),
+      "For more information, see --help"
+    );
+
+    process::exit(1);
+  }
+
+  let (entry_tx, entry_rx) = channel();
   let renderer = renderer_impl(Arc::clone(&config), entry_rx);
 
   // kick off the reader thread and hope it goes on to do great things
@@ -51,7 +64,6 @@ fn main() -> Result<(), Box<Error>> {
   let (exit_req_tx, exit_req_rx) = channel();
   let (exit_resp_tx, exit_resp_rx) = channel();
 
-  let reader_impl = config.reader.get_reader(Arc::clone(&config));
   reader_impl(
     Arc::clone(&config),
     entry_tx,
