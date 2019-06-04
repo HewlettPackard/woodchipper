@@ -66,15 +66,20 @@ impl FromStr for RendererType {
 fn get_auto_reader(config: Arc<Config>) -> reader::Reader {
   // TODO: is it possible to tell if stdin has some input?
   // TODO: consider detecting if k8s based on args and kubernetes::is_selector?
+  if !atty::is(Stream::Stdin) {
+    // /dev/stdin should exist on all unixes
+    if cfg!(unix) {
+      return reader::read_stdin_hack
+    } else {
+      return reader::read_stdin
+    }
+  }
+
   if config.kubernetes.namespace.is_some() {
     return reader::read_kubernetes_selector;
   }
 
-  if cfg!(unix) {
-    reader::read_stdin_hack
-  } else {
-    reader::read_stdin
-  }
+  reader::read_null
 }
 
 #[derive(Debug)]
@@ -82,7 +87,8 @@ pub enum ReaderType {
   Auto,
   Stdin,
   Hack,
-  Kubernetes
+  Kubernetes,
+  Null
   //Subprocess
 }
 
@@ -92,7 +98,8 @@ impl ReaderType {
       ReaderType::Auto => get_auto_reader(config),
       ReaderType::Stdin => reader::read_stdin,
       ReaderType::Hack => reader::read_stdin_hack,
-      ReaderType::Kubernetes => reader::read_kubernetes_selector
+      ReaderType::Kubernetes => reader::read_kubernetes_selector,
+      ReaderType::Null => reader::read_null
       //ReaderType::Subprocess => ...
     }
   }
@@ -107,6 +114,7 @@ impl FromStr for ReaderType {
       "stdin" => Ok(ReaderType::Stdin),
       "hack" => Ok(ReaderType::Hack),
       "kubernetes" | "k8s" => Ok(ReaderType::Kubernetes),
+      "null" => Ok(ReaderType::Null),
       _ => bail!(format!("invalid reader type: {}", s))
     }
   }
