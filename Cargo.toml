@@ -3,6 +3,10 @@ name = "woodchipper"
 version = "0.1.0"
 authors = ["Tim Buckley <timothy.jas.buckley@hpe.com>"]
 edition = "2018"
+license = "MIT"
+categories = ["command-line-utilities", "development-tools", "development-tools::debugging"]
+homepage = "https://github.com/HewlettPackard/woodchipper/"
+repository = "https://github.com/HewlettPackard/woodchipper/"
 
 [dependencies]
 serde = { version = "1.0.89", features = ["derive"] }
