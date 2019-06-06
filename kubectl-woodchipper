@@ -1,0 +1,11 @@
+#!/bin/bash
+# (C) Copyright 2019 Hewlett Packard Enterprise Development LP
+# A simple wrapper script to use woodchipper as a kubectl plugin.
+# Place this on your $PATH and run it with: 
+#
+#  kubectl woodchipper -n my-namespace app=my-app,component=my-component
+#
+# This script may be renamed or aliased to shorten the command, e.g.
+# `kubectl-wd` will be run as `kubectl wd [...]`
+
+woodchipper --reader=kubernetes "$@"
