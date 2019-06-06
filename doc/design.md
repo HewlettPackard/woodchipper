@@ -25,7 +25,7 @@ Existing implementations include:
    conflicts with the interactive renderer on Unix
  * [`null.rs`][null]: a dummy reader that prints an error and quits, used as a
    fallback if no other reader is available
- * [`kubernetes.rs`][kubernetes]: fetches log messages from Kubernetes pods via
+ * the [kubernetes reader] fetches log messages from Kubernetes pods via
    the Kubernetes API
 
 Readers run in a dedicated thread and send messages over a [channel] for further
@@ -57,7 +57,7 @@ metadata to be send along the channel:
 [stdin]: ../src/reader/stdin.rs
 [stdin_hack]: ../src/reader/stdin_hack.rs
 [null]: ../src/reader/null.rs
-[kubernetes]: ../src/reader/kubernetes.rs
+[kubernetes reader]: ./kubernetes-reader.md
 [channel]: https://doc.rust-lang.org/std/sync/mpsc/fn.channel.html
 
 ## Parsing
@@ -67,20 +67,31 @@ output multiple formats (e.g. startup scripts, 3rd party libraries, or multiple
 separate Kubernetes containers). Parsers must quickly determine if messages are
 supported or hand them off to the next parser in the chain.
 
+If the parser can parse the input message, it returns a normalized
+[`Message`][parser-types] instance with as much metadata as it could extract.
+
 Existing implementations include:
 
  * [`json.rs`][json]: parses JSON log lines, i.e. lines like `{...}\n`
 
-   It specifically tries to support [logrus][logrus-lib] formatters others with
-   similar field mappings and date formats (falling back to
-   [`dtparse`][dtparse]). Unidentified fields are copied to the `metadata`
-   field for use by classifiers.
+   It specifically aims to support [logrus][logrus-lib]-like JSON output
+   formats, but various other field mappings are also supported.
+
+   Prefers RFC-3339-style timestamps but falls back to [`dtparse`][dtparse].
+
+   Unidentified fields are copied to the `metadata` field for use later in the
+   pipline.
  * [`plain.rs`][plain]: the fallback parser; renders the raw message, but
-   opportunistically includes metadata if it can be identified
+   opportunistically includes metadata if it can be identified.
 
    Where possible, timestamps are parsed out of messages using
    [`dtparse`][dtparse], with some simple checks to discard timestamps for
-   common failure cases.
+   common failure cases. Log levels are identified where possible.
+
+Parsers may refer to the reader's metadata to include or override their parsed
+contextual info. For example, the plain parser prefers to use the reader's
+timestamp rather than using the significantly slower and less accurate `dtparse`
+free-form parser.
 
 [logrus-lib]: https://github.com/sirupsen/logrus
 [json]: ../src/parser/json.rs
@@ -88,6 +99,45 @@ Existing implementations include:
 [dtparse]: https://crates.io/crates/dtparse
 
 ## Classification
+
+Given a normalized [`Message`][parser-types] instance, a classifier generates
+some number of [`Chunks`][classifier-types]. They are responsible for
+determining various rendering-specific attributes:
+
+ * the formatted text content
+ * the `kind`, used mainly for highlighting and aligning text segments
+ * the `slot`, used to place the segment within a screen region (left, center,
+   right)
+ * the alignment of text within a chunk
+ * padding, wrapping, and line break hints
+ * the `weight`, used to hide less important chunks on smaller displays
+
+At the moment, chunks are arranged based on the order in which classifiers are
+executed. Chunks may contain children to individually apply styles to different
+sub-sections of a text segment while avoiding improper line wrapping.
+
+Classifiers may mark metadata fields as "consumed" by adding their keys to a
+shared `HashSet`, allowing later classifiers in the chain to skip 
+
+Existing implementations include:
+
+ * [`timestamp.rs`][timestamp-classifier]: formats timestamps into two chunks,
+   allowing the lower priority date chunk to be pruned while still displaying
+   the time.
+ * [`level.rs`][level-classifier]: adds the log level using its level-specific
+   `kind`
+ * [`text.rs`][text-classifier]: adds force-wrapped chunks per line of input
+   text, allowing strings with newlines to be displayed sensibly
+ * [`logrus.rs`][logrus-classifier]: extracts logrus's `file` field for display
+   in the right column, trimming the path to the last few components
+ * [`metadata.rs`][metadata-classifier]: adds all un-processed metadata fields
+   to the message as `[key]=[value]` pairs
+
+[timestamp-classifier]: ../src/classifier/timestamp.rs
+[level-classifier]: ../src/classifier/level.rs
+[text-classifier]: ../src/classifier/text.rs
+[logrus-classifier]: ../src/classifier/logrus.rs
+[metadata-classifier]: ../src/classifier/metadata.rs
 
 ## Rendering
 
@@ -110,17 +160,13 @@ Existing implementations include:
 
    This output is less suitable for sharing as it contains ANSI escape
    characters and right-aligned text.
- * the [interactive] renderer: a performant custom pager with interactive
+ * the [interactive renderer]: a performant custom pager with interactive
    features, including text reflow, searching, filtering, and improved browsing.
 
 [json-renderer]: ../src/renderer/json.rs
 [plain-renderer]: ../src/renderer/plain.rs
 [styled-renderer]: ../src/renderer/styled.rs
-[interactive]: ../src/renderer/interactive
-
-### The Interactive Renderer
-
-
+[interactive renderer]: ./interactive-renderer
 
 [config]: ../src/config.rs
 [renderer-types]: ../src/renderer/types.rs
