@@ -26,10 +26,10 @@ pub fn read_stdin_hack(
   thread::Builder::new().name("read_stdin_hack".to_string()).spawn(move || {
     let file = File::open("/dev/stdin").map_err(SimpleError::from)?;
 
-    let mut count = 0;
+    let mut empty = true;
     for line in BufReader::new(file).lines() {
       let line = line.map_err(SimpleError::from)?;
-      count += 1;
+      empty = false;
 
       match LogEntry::message(&line, None) {
         Ok(Some(entry)) => match tx.send(entry) {
@@ -41,7 +41,7 @@ pub fn read_stdin_hack(
       }
     }
 
-    if count == 0 {
+    if empty {
       tx.send(LogEntry::internal(
         "warning: reached end of input without reading any messages"
       )).ok();
