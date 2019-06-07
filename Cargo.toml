@@ -24,6 +24,8 @@ jsonpath = "0.1.1"
 reqwest = "0.9"
 rand = "0.6"
 subprocess = "0.1"
+pest = "2.1"
+pest_derive = "2.1"
 
 [target.'cfg(not(target_env = "musl"))'.dependencies]
 clipboard = "0.5.0"

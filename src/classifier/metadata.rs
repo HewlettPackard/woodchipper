@@ -46,6 +46,7 @@ fn field_to_chunk((key, val): (&String, &Value)) -> Chunk {
         slot: ChunkSlot::Left,
 
         pad_right: true,
+        wrap: true,
 
         weight: ChunkWeight::Normal.value(),
         value: Some(nicer_to_string(val)),
@@ -58,7 +59,9 @@ fn field_to_chunk((key, val): (&String, &Value)) -> Chunk {
   }
 }
 
-pub fn classify_metadata(message: &Message, fields: &mut HashSet<String>) -> Vec<Chunk> {
+pub fn classify_metadata(
+  message: &Message, fields: &mut HashSet<String>
+) -> Vec<Chunk> {
   let mut fields: Vec<Chunk> = message.metadata.iter()
     .filter(|(key, _)| !fields.contains(*key))
     .filter(|(_, val)| !nicer_to_string(val).is_empty())
