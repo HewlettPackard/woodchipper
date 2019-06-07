@@ -30,8 +30,10 @@ pub fn read_stdin(
   // problems
 
   thread::Builder::new().name("read_stdin".to_string()).spawn(move || {
+    let mut empty = true;
     for line in io::stdin().lock().lines() {
       let line = line.map_err(SimpleError::from)?;
+      empty = false;
 
       match LogEntry::message(&line, None) {
         Ok(Some(entry)) => match tx.send(entry) {
@@ -42,6 +44,12 @@ pub fn read_stdin(
         Err(_) => continue,
         _ => continue
       };
+    }
+
+    if empty {
+      tx.send(LogEntry::internal(
+        "warning: reached end of input without reading any messages"
+      )).ok();
     }
 
     // not much we can do if this fails
