@@ -1,13 +1,14 @@
 // (C) Copyright 2019 Hewlett Packard Enterprise Development LP
 
-mod types;
-mod timestamp;
-mod level;
-mod text;
-mod logrus;
+mod context;
 mod kelog;
+mod level;
+mod logrus;
 mod metadata;
 mod source;
+mod text;
+mod timestamp;
+mod types;
 mod util;
 
 use std::collections::HashSet;
@@ -22,6 +23,7 @@ static CLASSIFIERS: &[Classifier] = &[
   text::classify_text,
   logrus::classify_logrus,
   kelog::classify_kelog,
+  context::classify_context,
   metadata::classify_metadata
 ];
 

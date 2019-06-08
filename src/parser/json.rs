@@ -12,7 +12,7 @@ use super::types::{
 };
 use super::util::{parse_timestamp, normalize_datetime};
 
-static TIMESTAMP_FIELDS: &[&str] = &["timestamp", "@timestamp", "time"];
+static TIMESTAMP_FIELDS: &[&str] = &["timestamp", "@timestamp", "time", "ts"];
 static LEVEL_FIELDS: &[&str] = &["level"];
 static TEXT_FIELDS: &[&str] = &["text", "msg", "message"];
 
@@ -99,29 +99,20 @@ pub fn get_timestamp(msg: &Map<String, Value>) -> Option<(&str, DateTime<Utc>)> 
   }
 }
 
-pub fn parse_json(
-  line: &str, meta: Option<ReaderMetadata>
+pub fn parse_document(
+  doc: Map<String, Value>,
+  meta: Option<ReaderMetadata>
 ) -> Result<Option<Message>, Box<Error>> {
-  // skip anything that doesn't at least vaguely look like json
-  if !line.starts_with('{') || !line.ends_with('}') {
-    return Ok(None);
-  }
-
   let mut mapped_fields = HashMap::new();
 
-  let msg: Map<String, Value> = match serde_json::from_str(line) {
-    Ok(message) => message,
-    Err(_) => return Ok(None)
-  };
-
-  let timestamp = if let Some((key, timestamp)) = get_timestamp(&msg) {
+  let timestamp = if let Some((key, timestamp)) = get_timestamp(&doc) {
     mapped_fields.insert(String::from(key), MappingField::Timestamp);
     Some(timestamp)
   } else {
     None
   };
 
-  let level = if let Some((key, value)) = get_value(&msg, LEVEL_FIELDS) {
+  let level = if let Some((key, value)) = get_value(&doc, LEVEL_FIELDS) {
     if let Some(level) = value.as_str().and_then(|s| s.parse::<LogLevel>().ok()) {
       mapped_fields.insert(String::from(key), MappingField::Level);
       Some(level)
@@ -132,7 +123,7 @@ pub fn parse_json(
     None
   };
 
-  let text = if let Some((key, text)) = get_value(&msg, TEXT_FIELDS) {
+  let text = if let Some((key, text)) = get_value(&doc, TEXT_FIELDS) {
     if let Some(text) = text.as_str() {
       mapped_fields.insert(String::from(key), MappingField::Text);
 
@@ -150,7 +141,7 @@ pub fn parse_json(
   };
 
   // clone remaining fields into the message metadata
-  let metadata: HashMap<String, Value> = msg.iter()
+  let metadata: HashMap<String, Value> = doc.iter()
     .filter(|(k, _v)| !mapped_fields.contains_key(k.as_str()))
     .map(|(k, v)| (k.to_string(), v.to_owned()))
     .collect();
@@ -162,4 +153,18 @@ pub fn parse_json(
   };
 
   Ok(Some(message))
+}
+
+pub fn parse_json(
+  line: &str, meta: Option<ReaderMetadata>
+) -> Result<Option<Message>, Box<Error>> {
+  // skip anything that doesn't at least vaguely look like json
+  if !line.starts_with('{') || !line.ends_with('}') {
+    return Ok(None);
+  }
+
+  match serde_json::from_str(line) {
+    Ok(message) => parse_document(message, meta),
+    Err(_) => Ok(None)
+  }
 }

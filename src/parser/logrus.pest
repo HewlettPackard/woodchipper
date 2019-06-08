@@ -1,0 +1,25 @@
+// (C) Copyright 2019 Hewlett Packard Enterprise Development LP
+// partially derived from the TOML example:
+// https://github.com/pest-parser/pest/blob/master/grammars/src/grammars/toml.pest
+
+logrus = { SOI ~ pair* ~ WHITESPACE? ~ NEWLINE? ~ EOI }
+
+pair = { key ~ "=" ~ value }
+key = @{ identifier }
+value = _{
+  string_outer |
+  object |
+  bare_string
+}
+
+identifier = { (ASCII_ALPHANUMERIC | "_" | "-" | ".")+ }
+string_outer = _{ "\"" ~ string ~ "\"" }
+string = @{ (!("\"" | "\\" | "\u{0000}" | "\u{001F}") ~ ANY)* ~ (escape ~ string)? }
+bare_string = @{ (!(" " | "\"") ~ ANY)+ }
+escape  = @{ "\\" ~ ("b" | "t" | "n" | "f" | "r" | "\"" | "\\" | unicode | NEWLINE)? }
+unicode = @{ "u" ~ ASCII_HEX_DIGIT{4} | "U" ~ ASCII_HEX_DIGIT{8} }
+
+object = @{ "&"? ~ "{" ~ object_content ~ "}" }
+object_content = @{ (!("{" | "}") ~ ANY)* }
+
+WHITESPACE = _{ " " }

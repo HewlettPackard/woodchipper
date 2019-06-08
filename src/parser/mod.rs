@@ -2,6 +2,7 @@
 
 pub mod util;
 mod types;
+mod logrus;
 mod json;
 mod plain;
 
@@ -9,7 +10,11 @@ use std::error::Error;
 
 pub use types::{LogLevel, Message, MessageKind, ReaderMetadata, Parser};
 
-static PARSERS: &[Parser] = &[json::parse_json, plain::parse_plain];
+static PARSERS: &[Parser] = &[
+  json::parse_json,
+  logrus::parse_logrus,
+  plain::parse_plain
+];
 
 pub fn parse(
   line: &str, meta: Option<ReaderMetadata>
