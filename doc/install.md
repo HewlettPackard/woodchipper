@@ -1,6 +1,6 @@
 # Installation
 
-Pre-built binaries for common platforms may be found on the
+Pre-built binaries for various platforms may be found on the
 [releases page][releases].
 
 ## Platform Notes
@@ -10,7 +10,7 @@ Pre-built binaries for common platforms may be found on the
  
    On Windows, only the Windows 10 terminal properly supports styled output.
    Older versions may need to use an alternative terminal or fall back to the
-   plain or JSON renderers (`-r plain`, `-r json`)/
+   plain or JSON renderers (`-r plain`, `-r json`)
  * Custom color output (base16 colors) requires 256 color support.
  * Statically-linked Linux builds require `xclip` for clipboard support.
  * Dynamically-linked Linux builds (`cargo build`) using the gnu toolchain will
