@@ -54,10 +54,10 @@ metadata to be send along the channel:
  * `LogEntry::internal()` is used to send internal messages to the user as our
    own logging ability is restricted, particularly in the interactive renderer
 
-[stdin]: ../src/reader/stdin.rs
-[stdin_hack]: ../src/reader/stdin_hack.rs
-[null]: ../src/reader/null.rs
-[kubernetes]: ../src/reader/kubernetes.rs
+[stdin]: ../../src/reader/stdin.rs
+[stdin_hack]: ../../src/reader/stdin_hack.rs
+[null]: ../../src/reader/null.rs
+[kubernetes]: ../../src/reader/kubernetes.rs
 [channel]: https://doc.rust-lang.org/std/sync/mpsc/fn.channel.html
 
 ## Parsing
@@ -83,11 +83,13 @@ Existing implementations include:
    common failure cases.
 
 [logrus-lib]: https://github.com/sirupsen/logrus
-[json]: ../src/parser/json.rs
-[plain]: ../src/parser/plain.rs
+[json]: ../../src/parser/json.rs
+[plain]: ../../src/parser/plain.rs
 [dtparse]: https://crates.io/crates/dtparse
 
 ## Classification
+
+TODO!
 
 ## Rendering
 
@@ -113,17 +115,13 @@ Existing implementations include:
  * the [interactive] renderer: a performant custom pager with interactive
    features, including text reflow, searching, filtering, and improved browsing.
 
-[json-renderer]: ../src/renderer/json.rs
-[plain-renderer]: ../src/renderer/plain.rs
-[styled-renderer]: ../src/renderer/styled.rs
-[interactive]: ../src/renderer/interactive
+[json-renderer]: ../../src/renderer/json.rs
+[plain-renderer]: ../../src/renderer/plain.rs
+[styled-renderer]: ../../src/renderer/styled.rs
+[interactive]: ../../src/renderer/interactive
 
-### The Interactive Renderer
-
-
-
-[config]: ../src/config.rs
-[renderer-types]: ../src/renderer/types.rs
-[parser-types]: ../src/parser/types.rs
-[classifier-types]: ../src/classifier/types.rs
-[renderer-types]: ../src/renderer/types.rs
+[config]: ../../src/config.rs
+[renderer-types]: ../../src/renderer/types.rs
+[parser-types]: ../../src/parser/types.rs
+[classifier-types]: ../../src/classifier/types.rs
+[renderer-types]: ../../src/renderer/types.rs

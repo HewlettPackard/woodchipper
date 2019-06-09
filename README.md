@@ -30,14 +30,11 @@ terminal.
     tail -f /var/log/my-app.log | woodchipper
     ```
 
- 3. For easier use with Kubernetes, install the [`kubectl` plugin][plugin]
-    wrapper script and watch some pods:
+ 3. Use the [`kubectl` plugin][plugin] wrapper script and watch some pods:
 
     ```bash
     kubectl woodchipper -n my-namespace app=my-app
     ```
-
-
 
 ## Usage
 
@@ -67,7 +64,9 @@ Alternatively, if you'd just like to print the colorized logs to your terminal:
 ./logs.sh | woodchipper -r styled
 ```
 
-### `kubectl` plugin (for `kubectl` 1.13+)
+### kubectl plugin
+
+> *For `kubectl` 1.13+, [read more][kubectl-plugins]*
 
 To make full use of the Kubernetes integration:
 
@@ -101,6 +100,8 @@ leave off `-n my-namespace` if `kubectl` is configured to use it already.
 Alternatively, the `WD_NAMESPACE` environment variable can be set to override
 the default.
 
+[kubectl-plugins]: https://kubernetes.io/docs/tasks/extend-kubectl/kubectl-plugins/
+
 ## Similar Projects
 
  * [stern] has similar Kubernetes tailing features
@@ -108,9 +109,33 @@ the default.
  * [slog] provides structured pretty printing
  * [less] supports paging, searching, and input following
 
-[plugin]: ./kubectl-woodchipper
+## Contributing
+
+Bug reports, feature requests, and pull requests are welcome! Be sure to read
+though the [code of conduct] for some pointers to get started.
+
+Note that - as mentioned in the code of conduct - code contributions must
+indicate that you accept the [Developer Certificate of Origin][dco],
+essentially indicating you have rights to the code you're contributing and
+that you agree to the project's license (MIT). With the Git CLI, simply pass
+`-s` to `git commit`:
+
+```bash
+git commit -s [...]
+```
+
+... and Git will automatically append the required `Signed-off-by: ...` to the
+end of your commit message.
+
+Additionally, the [design documentation][design] may be a helpful resource for
+understanding how woodchipper works.
+
+[plugin]: ./misc/kubectl-woodchipper
 [releases]: https://github.com/HewlettPackard/woodchipper/releases/latest
 [stern]: https://github.com/wercker/stern
 [logrus]: https://github.com/sirupsen/logrus
 [slog]: https://github.com/slog-rs/slog
 [less]: https://www.gnu.org/software/less/
+[code of conduct]: ./CODE_OF_CONDUCT.md
+[dco]: https://developercertificate.org/
+[design]: ./doc/design/design.md
