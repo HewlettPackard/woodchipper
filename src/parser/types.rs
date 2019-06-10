@@ -24,6 +24,8 @@ pub type Parser = fn(
 pub enum MessageKind {
   Json,
   Plain,
+  Logrus,
+  Klog,
   Internal
 }
 
