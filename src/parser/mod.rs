@@ -1,10 +1,11 @@
 // (C) Copyright 2019 Hewlett Packard Enterprise Development LP
 
-pub mod util;
-mod types;
-mod logrus;
 mod json;
+mod klog;
+mod logrus;
 mod plain;
+mod types;
+pub mod util;
 
 use std::error::Error;
 
@@ -13,6 +14,7 @@ pub use types::{LogLevel, Message, MessageKind, ReaderMetadata, Parser};
 static PARSERS: &[Parser] = &[
   json::parse_json,
   logrus::parse_logrus,
+  klog::parse_klog,
   plain::parse_plain
 ];
 
