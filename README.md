@@ -74,26 +74,36 @@ To make full use of the Kubernetes integration:
  * Install the [wrapper script][plugin] on your `$PATH`
 
 Woodchipper uses `kubectl proxy` to access the Kubernetes API, so it can
-connect to your cluster is `kubectl` can.
+connect to your cluster if `kubectl` can.
 
 To follow a pod named `my-pod-1234`, run:
-
 ```bash
 kubectl woodchipper -n my-namespace my-pod-1234
 ```
 
 Alternatively, if you don't want to use the kubectl plugin, this is equivalent:
-
 ```bash
 woodchipper --reader=kubernetes -n my-namespace my-pod-1234
 ```
 
 Woodchipper matches pods continually using substrings, so a partial pod name
 will follow pods even between restarts or deployment upgrades:
-
 ```bash
 woodchipper --reader=kubernetes -n my-namespace my-pod
 ```
+
+Multiple substrings can be used:
+```bash
+kubectl woodchipper -n my-namespace my-pod my-other-pod
+```
+
+Alternatively, if you give it a label-like selector, it will perform a label
+query:
+```bash
+kubectl woodchipper -n my-namespace app=my-app
+```
+
+Note that only one label selector may be used at a time.
 
 Woodchipper honors your configured `kubectl` default namespace, so you can
 leave off `-n my-namespace` if `kubectl` is configured to use it already.
