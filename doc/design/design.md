@@ -166,7 +166,7 @@ Existing implementations include:
 [json-renderer]: ../../src/renderer/json.rs
 [plain-renderer]: ../../src/renderer/plain.rs
 [styled-renderer]: ../../src/renderer/styled.rs
-[interactive renderer]: ./interactive-renderer
+[interactive renderer]: ./interactive-renderer.md
 
 [config]: ../../src/config.rs
 [renderer-types]: ../../src/renderer/types.rs

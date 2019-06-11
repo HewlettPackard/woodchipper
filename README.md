@@ -112,6 +112,16 @@ the default.
 
 [kubectl-plugins]: https://kubernetes.io/docs/tasks/extend-kubectl/kubectl-plugins/
 
+## Supported Log Formats
+
+Woodchipper can parse, format, and stylize any of the following logs,
+potentially mixed together:
+
+ * Several varieties of JSON logs, e.g. `{"time": "...", "msg": "hello world"}`
+ * [logrus]-style key/value pair logs, e.g. `time="..." msg="hello world"`
+ * [klog] logs for Kubernetes components
+ * Plaintext logs with inferred timestamps and log levels
+
 ## Similar Projects
 
  * [stern] has similar Kubernetes tailing features
@@ -142,6 +152,7 @@ understanding how woodchipper works.
 
 [plugin]: ./misc/kubectl-woodchipper
 [releases]: https://github.com/HewlettPackard/woodchipper/releases/latest
+[klog]: https://github.com/kubernetes/klog
 [stern]: https://github.com/wercker/stern
 [logrus]: https://github.com/sirupsen/logrus
 [slog]: https://github.com/slog-rs/slog
