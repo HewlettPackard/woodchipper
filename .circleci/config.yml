@@ -96,6 +96,7 @@ jobs:
       - run:
           name: install build dependencies
           command: |
+            apt update
             apt-get install -y xorg-dev python3 libxcb-shape0-dev libxcb-xfixes0-dev libxcb-render0-dev libssl-dev
       - run:
           name: cargo publish
