@@ -8,6 +8,10 @@ categories = ["command-line-utilities", "development-tools", "development-tools:
 homepage = "https://github.com/HewlettPackard/woodchipper/"
 repository = "https://github.com/HewlettPackard/woodchipper/"
 description = "An interactive command-line log processor"
+exclude = [".circleci/**/*"]
+
+[badges]
+circle-ci = { repository = "HewlettPackard/woodchipper", branch = "master" }
 
 [dependencies]
 serde = { version = "1.0.89", features = ["derive"] }

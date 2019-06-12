@@ -80,12 +80,24 @@ jobs:
             cd /usr/local/bin/
             curl -SsLf "$ghr_url" | tar zxvf - --strip=1 --wildcards 'ghr_*/ghr'
       - run:
-          name: publish release
+          name: publish GitHub release
           command: |
-            set -x
-            pwd
-
+            echo "${CIRCLE_TAG}" > ./artifacts/version
             ghr -u HewlettPackard -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -replace ${CIRCLE_TAG} ./artifacts/
+  publish-cargo:
+    docker:
+      - image: rust:1.35-slim
+    steps:
+      - run:
+          name: patch version
+          command: |
+            sed -i -e "s/version = "0.1.0"/version = \"${CIRCLE_TAG}\"/" Cargo.toml
+      - run:
+          name: cargo package
+          command: cargo package
+      - run:
+          name: cargo publish
+          command: cargo publish
 workflows:
   version: 2
   build-and-publish:
@@ -102,6 +114,12 @@ workflows:
           requires:
             - build-linux
             - build-windows
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /.*/
+      - publish-cargo:
           filters:
             branches:
               ignore: /.*/
