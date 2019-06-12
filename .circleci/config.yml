@@ -88,6 +88,7 @@ jobs:
     docker:
       - image: rust:1.35-slim
     steps:
+      - checkout
       - run:
           name: patch version
           command: |
