@@ -1,6 +1,5 @@
 [package]
 name = "woodchipper"
-version = "0.1.0"
 authors = ["Tim Buckley <timothy.jas.buckley@hpe.com>"]
 edition = "2018"
 license = "MIT"
@@ -10,6 +9,9 @@ repository = "https://github.com/HewlettPackard/woodchipper/"
 description = "An interactive command-line log processor"
 exclude = [".circleci/**/*"]
 readme = "README.md"
+
+# NOTE: do not change the version here, it will be patched by the deployment job
+version = "0.1.0"
 
 [badges]
 circle-ci = { repository = "HewlettPackard/woodchipper", branch = "master" }

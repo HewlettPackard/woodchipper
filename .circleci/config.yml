@@ -90,14 +90,15 @@ jobs:
     steps:
       - checkout
       - run:
-          name: patch version
-          command: |
-            sed -i -e "s/version = "0.1.0"/version = \"${CIRCLE_TAG}\"/" Cargo.toml
-      - run:
           name: install build dependencies
           command: |
             apt-get update
             apt-get install -y xorg-dev python3 libxcb-shape0-dev libxcb-xfixes0-dev libxcb-render0-dev libssl-dev
+      - run:
+          name: patch version
+          command: |
+            version=$(echo "$CIRCLE_TAG" | sed -e 's/^v//')
+            sed -i -e "s/version = \"0.1.0\"/version = \"$version\"/" Cargo.toml
       - run:
           name: cargo publish
           command: cargo publish --allow-dirty --locked
