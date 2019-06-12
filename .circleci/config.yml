@@ -11,10 +11,12 @@ jobs:
       - run:
           name: patch crate version
           command: |
-            version=$(echo "$CIRCLE_TAG" | sed -e 's/^v//')
-            sed -i -e "s/version = \"0.1.0\"/version = \"$version\"/" Cargo.toml
+            if [[ -n "$CIRCLE_TAG" ]]; then
+              version=$(echo "$CIRCLE_TAG" | sed -e 's/^v//')
+              sed -i -e "s/version = \"0.1.0\"/version = \"$version\"/" Cargo.toml
 
-            cargo update -p woodchipper
+              cargo update -p woodchipper
+            fi
       - run:
           name: Build static linux x86_64
           command: cargo build --release --locked
@@ -54,10 +56,12 @@ jobs:
       - run:
           name: patch crate version
           command: |
-            version=$(echo "$CIRCLE_TAG" | sed -e 's/^v//')
-            sed -i -e "s/version = \"0.1.0\"/version = \"$version\"/" Cargo.toml
+            if [[ -n "$CIRCLE_TAG" ]]; then
+              version=$(echo "$CIRCLE_TAG" | sed -e 's/^v//')
+              sed -i -e "s/version = \"0.1.0\"/version = \"$version\"/" Cargo.toml
 
-            cargo update -p woodchipper
+              cargo update -p woodchipper
+            fi
       - run:
           name: Build windows x86_64
           command: |
