@@ -94,7 +94,7 @@ jobs:
             sed -i -e "s/version = "0.1.0"/version = \"${CIRCLE_TAG}\"/" Cargo.toml
       - run:
           name: cargo publish
-          command: cargo publish --allow-dirty
+          command: cargo publish --allow-dirty --locked
 workflows:
   version: 2
   build-and-publish:

@@ -9,6 +9,7 @@ homepage = "https://github.com/HewlettPackard/woodchipper/"
 repository = "https://github.com/HewlettPackard/woodchipper/"
 description = "An interactive command-line log processor"
 exclude = [".circleci/**/*"]
+readme = "README.md"
 
 [badges]
 circle-ci = { repository = "HewlettPackard/woodchipper", branch = "master" }
