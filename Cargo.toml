@@ -7,6 +7,7 @@ license = "MIT"
 categories = ["command-line-utilities", "development-tools", "development-tools::debugging"]
 homepage = "https://github.com/HewlettPackard/woodchipper/"
 repository = "https://github.com/HewlettPackard/woodchipper/"
+description = "An interactive command-line log processor"
 
 [dependencies]
 serde = { version = "1.0.89", features = ["derive"] }
