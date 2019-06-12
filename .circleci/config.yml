@@ -9,6 +9,15 @@ jobs:
       - restore_cache:
           key: linux-{{ checksum "Cargo.lock" }}
       - run:
+          name: patch crate version
+          command: |
+            if [[ -n "$CIRCLE_TAG" ]]; then
+              version=$(echo "$CIRCLE_TAG" | sed -e 's/^v//')
+              sed -i -e "s/version = \"0.1.0\"/version = \"$version\"/" Cargo.toml
+
+              cargo update -p woodchipper
+            fi
+      - run:
           name: Build static linux x86_64
           command: cargo build --release --locked
       - save_cache:
@@ -44,6 +53,15 @@ jobs:
 
             rustup target add x86_64-pc-windows-gnu
             cat "misc/cargo-conf-mingw.toml" >> $CARGO_HOME/config
+      - run:
+          name: patch crate version
+          command: |
+            if [[ -n "$CIRCLE_TAG" ]]; then
+              version=$(echo "$CIRCLE_TAG" | sed -e 's/^v//')
+              sed -i -e "s/version = \"0.1.0\"/version = \"$version\"/" Cargo.toml
+
+              cargo update -p woodchipper
+            fi
       - run:
           name: Build windows x86_64
           command: |
