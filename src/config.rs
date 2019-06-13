@@ -174,12 +174,12 @@ pub struct Config {
   pub preferred_renderer: RendererType,
 
   /// Reader to use, one of: auto, stdin, hack, kubernetes
-  /// 
+  ///
   /// If auto, reader will be determined selected based on OS and renderer.
-  /// 
-  /// - `stdin` reads from standard input
-  /// - `hack` reads from /dev/stdin to allow the interactive renderer to work
-  /// - `kubernetes` continuously follows Kubernetes pods
+  ///{n}{n}
+  /// - `stdin` reads from standard input{n}
+  /// - `hack` reads from /dev/stdin to allow the interactive renderer to work{n}
+  /// - `kubernetes` continuously follows Kubernetes pods{n}
   /// - `auto` selects `hack` on unix, unless some Kubernetes flag is set
   #[structopt(long, short = "i", default_value = "auto", env = "WD_READER")]
   pub reader: ReaderType,
