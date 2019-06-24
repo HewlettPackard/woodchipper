@@ -37,7 +37,13 @@ pub fn parse_klog(
     // naughty unwrapping, but we have a constant number of groups
     let level = map_klog_level(caps.get(1).unwrap().as_str());
 
-    let timestamp_str = caps.get(2).unwrap().as_str();
+    // chrono needs a year but klog omits this, so fill in the current year
+    let current_year = Utc::now().year();
+    let timestamp_str = format!(
+      "{} {}",
+      current_year,
+      caps.get(2).unwrap().as_str()
+    );
     
     // ex: 0607 19:28:33.579841
     let reader_timestamp = if let Some(meta) = &meta {
@@ -49,9 +55,10 @@ pub fn parse_klog(
     } else { None };
 
     let timestamp = Utc.datetime_from_str(
-      timestamp_str,
-      "%m%d %H:%M:%S:%.f"
+      &timestamp_str,
+      "%Y %m%d %H:%M:%S%.f"
     ).ok().or(reader_timestamp);
+
     let text = caps.get(5).unwrap().as_str();
 
     let mut metadata = HashMap::new();
