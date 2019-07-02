@@ -2,11 +2,13 @@
 
 use std::collections::HashMap;
 use std::error::Error;
+use std::sync::Arc;
 
 use chrono::prelude::*;
 use regex::Regex;
 use serde_json::Value;
 
+use crate::config::Config;
 use super::types::{LogLevel, Message, MessageKind, ReaderMetadata};
 
 fn map_klog_level(level: &str) -> Option<LogLevel> {
@@ -25,7 +27,7 @@ fn map_klog_level(level: &str) -> Option<LogLevel> {
 // based on the format description at:
 // https://github.com/kubernetes/klog/blob/master/klog.go#L592-L602
 pub fn parse_klog(
-  line: &str, meta: Option<ReaderMetadata>
+  _config: Arc<Config>, line: &str, meta: Option<ReaderMetadata>
 ) -> Result<Option<Message>, Box<Error>> {
   lazy_static! {
     static ref RE: Regex = Regex::new(

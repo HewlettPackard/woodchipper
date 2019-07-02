@@ -387,6 +387,7 @@ fn parse_line<'a>(
 }
 
 fn follow_log(
+  config: Arc<Config>,
   namespace: String, port: u16,
   container: Container,
   tx: Sender<LogEntry>
@@ -486,7 +487,7 @@ fn follow_log(
         // TODO: need some special parsing magic
         // need container name available, and we can fill dates using timestamps=true
         // can we pass this info in directly as pre-parsed chunks?
-        match LogEntry::message(parsed, Some(meta)) {
+        match LogEntry::message(Arc::clone(&config), parsed, Some(meta)) {
           Ok(Some(entry)) => tx.send(entry).ok(),
           _ => continue
         };
@@ -613,7 +614,13 @@ pub fn read_kubernetes_selector(
       for event in event_rx.try_iter() {
         match event {
           PodEvent::Added(container) => {
-            follow_log(namespace.clone(), port, container, tx.clone());
+            follow_log(
+              Arc::clone(&config),
+              namespace.clone(),
+              port,
+              container,
+              tx.clone()
+            );
           },
           PodEvent::Removed(_container) => {
             // TODO: do we care?

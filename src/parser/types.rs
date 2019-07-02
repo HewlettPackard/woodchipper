@@ -5,18 +5,20 @@ use std::error::Error;
 use std::fmt;
 use std::hash::Hash;
 use std::str::FromStr;
+use std::sync::Arc;
 
 use chrono::DateTime;
 use chrono::offset::Utc;
 use serde::{Serialize, Deserialize};
-
 use serde_json::Value;
+
+use crate::config::Config;
 
 /// Attempts to parse a log line.
 /// Returns Ok(Some(Message)) on success, Err on error, or Ok(None) to pass the
 /// message to the next parser.
 pub type Parser = fn(
-  line: &str, meta: Option<ReaderMetadata>
+  config: Arc<Config>, line: &str, meta: Option<ReaderMetadata>
 ) -> Result<Option<Message>, Box<Error>>;
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq)]
@@ -26,6 +28,7 @@ pub enum MessageKind {
   Plain,
   Logrus,
   Klog,
+  Regex,
   Internal
 }
 

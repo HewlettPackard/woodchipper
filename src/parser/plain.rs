@@ -2,11 +2,13 @@
 
 use std::collections::HashMap;
 use std::error::Error;
+use std::sync::Arc;
 
 use chrono::prelude::*;
 use dtparse::Parser;
 use regex::RegexSet;
 
+use crate::config::Config;
 use super::types::{LogLevel, Message, MessageKind, ReaderMetadata};
 use super::util::normalize_datetime;
 
@@ -91,7 +93,7 @@ fn get_meta_timestamp(meta: &Option<ReaderMetadata>) -> Option<DateTime<Utc>> {
 }
 
 pub fn parse_plain(
-  line: &str, meta: Option<ReaderMetadata>
+  _config: Arc<Config>, line: &str, meta: Option<ReaderMetadata>
 ) -> Result<Option<Message>, Box<Error>> {
   let timestamp = if let Some(timestamp) = get_meta_timestamp(&meta) {
     Some(timestamp)

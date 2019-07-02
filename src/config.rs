@@ -1,10 +1,18 @@
 // (C) Copyright 2019 Hewlett Packard Enterprise Development LP
 
-use std::sync::Arc;
 use std::error::Error;
+use std::fmt;
+use std::fs::File;
+use std::io::BufReader;
 use std::str::FromStr;
+use std::sync::Arc;
 
 use atty::{self, Stream};
+use regex::Regex;
+use serde::Deserialize;
+use serde::de::{self, Visitor, Unexpected, Deserializer};
+use shellexpand;
+use simple_error::{SimpleError, SimpleResult};
 use structopt::StructOpt;
 
 use crate::style::StyleConfig;
@@ -146,6 +154,76 @@ pub struct KubernetesConfig {
   pub poll_interval: u64
 }
 
+struct RegexFromStr;
+
+impl<'de> Visitor<'de> for RegexFromStr {
+  type Value = Regex;
+
+  fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    f.write_str("a string containing a valid regular expression")
+  }
+
+  fn visit_str<E>(self, s: &str) -> Result<Self::Value, E>
+  where
+    E: de::Error
+  {
+    match Regex::new(s) {
+      Ok(r) => Ok(r),
+      Err(e) => Err(de::Error::custom(format!(
+        "could not compile regex: {:?}", e
+      )))
+    }
+  }
+}
+
+fn de_regex<'de, D>(deserializer: D) -> Result<Regex, D::Error>
+where
+  D: Deserializer<'de>
+{
+  deserializer.deserialize_str(RegexFromStr)
+}
+
+#[derive(Debug, Deserialize)]
+pub struct RegexMapping {
+  /// a Regex pattern to parse an incoming line
+  #[serde(deserialize_with = "de_regex")]
+  pub pattern: Regex,
+
+  /// A Chrono datetime format string, will be applied to the `datetime` capture
+  /// group
+  pub datetime: Option<String>,
+
+  /// An optional Chrono strftime string used to prepend missing fields to the
+  /// timestamp before parsing
+  ///
+  /// Chrono isn't able to parse datetimes with missing fields (e.g. year), but
+  /// some log formats (e.g. klog) leave certain fields out. This allows these
+  /// formats to be parsed anyway.
+  pub datetime_prepend: Option<String>
+}
+
+#[derive(Debug, Deserialize)]
+pub struct RegexConfig {
+  pub mappings: Vec<RegexMapping>
+}
+
+impl FromStr for RegexConfig {
+  type Err = SimpleError;
+
+  fn from_str(path: &str) -> Result<Self, Self::Err> {
+    let expanded_path = shellexpand::full(path).map_err(SimpleError::from)?;
+    let file = File::open(&expanded_path.to_string()).map_err(SimpleError::from)?;
+    let reader = BufReader::new(file);
+
+    match serde_yaml::from_reader(reader) {
+      Ok(config) => Ok(config),
+      Err(e) => Err(SimpleError::new(
+        format!("error loading regexes {}: {:?}", path, e)
+      ))
+    }
+  }
+}
+
 #[derive(Debug, StructOpt)]
 #[structopt(
   name = "woodchipper",
@@ -205,6 +283,9 @@ pub struct Config {
   /// Must contain one of the following: `default`, `base16:<path to .yaml>`
   #[structopt(long, short = "s", default_value = "default", env = "WD_STYLE")]
   pub style: StyleConfig,
+
+  #[structopt(long, env = "WD_REGEXES")]
+  pub regexes: Option<RegexConfig>,
 
   #[structopt(flatten)]
   pub kubernetes: KubernetesConfig
