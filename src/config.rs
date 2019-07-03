@@ -202,7 +202,7 @@ pub struct RegexMapping {
   pub datetime_prepend: Option<String>
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug)]
 pub struct RegexConfig {
   pub mappings: Vec<RegexMapping>
 }
@@ -216,7 +216,7 @@ impl FromStr for RegexConfig {
     let reader = BufReader::new(file);
 
     match serde_yaml::from_reader(reader) {
-      Ok(config) => Ok(config),
+      Ok(mappings) => Ok(RegexConfig { mappings }),
       Err(e) => Err(SimpleError::new(
         format!("error loading regexes {}: {:?}", path, e)
       ))
@@ -284,6 +284,8 @@ pub struct Config {
   #[structopt(long, short = "s", default_value = "default", env = "WD_STYLE")]
   pub style: StyleConfig,
 
+  /// A path to a regexes config file, which may contain custom parsing regexes
+  /// for application-specific log formats.
   #[structopt(long, env = "WD_REGEXES")]
   pub regexes: Option<RegexConfig>,
 
