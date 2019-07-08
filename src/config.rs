@@ -10,9 +10,9 @@ use std::sync::Arc;
 use atty::{self, Stream};
 use regex::Regex;
 use serde::Deserialize;
-use serde::de::{self, Visitor, Unexpected, Deserializer};
+use serde::de::{self, Visitor, Deserializer};
 use shellexpand;
-use simple_error::{SimpleError, SimpleResult};
+use simple_error::SimpleError;
 use structopt::StructOpt;
 
 use crate::style::StyleConfig;
@@ -200,6 +200,17 @@ pub struct RegexMapping {
   /// some log formats (e.g. klog) leave certain fields out. This allows these
   /// formats to be parsed anyway.
   pub datetime_prepend: Option<String>
+}
+
+impl RegexMapping {
+  /// Manually creates a new RegexMapping; used mainly in tests
+  pub fn from_str(pattern: &str, datetime: &str) -> RegexMapping {
+    RegexMapping {
+      pattern: Regex::new(pattern).unwrap(),
+      datetime: Some(String::from(datetime)),
+      datetime_prepend: None
+    }
+  }
 }
 
 #[derive(Debug)]

@@ -12,6 +12,8 @@ use crate::config::{Config, RegexMapping};
 use super::types::{LogLevel, Message, MessageKind, ReaderMetadata};
 use super::util::normalize_datetime;
 
+#[cfg(test)] use spectral::prelude::*;
+
 fn parse_rfc2822(s: &str) -> Option<DateTime<Utc>> {
   match DateTime::parse_from_rfc2822(s) {
     Ok(d) => Some(normalize_datetime(&d.naive_local(), Some(*d.offset()))),
@@ -133,4 +135,80 @@ pub fn parse_regex(
   }
   
   Ok(None)
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  use serde_json::json;
+  use simple_error::{SimpleResult, SimpleError};
+
+  fn parse_to_value(
+    line: &str, mapping: &RegexMapping, meta: &Option<ReaderMetadata>
+  ) -> SimpleResult<Value> {
+    let parsed = parse_mapping(line, mapping, meta)
+      .map_err(|e| SimpleError::new(format!("{:?}", e)))?;
+
+    serde_json::to_value(parsed).map_err(SimpleError::from)
+  }
+
+  #[test]
+  fn test_empty() {
+    let value = parse_to_value(
+      "",
+      &RegexMapping::from_str(r"", "rfc3339"),
+      &None
+    );
+
+    assert_that!(value).is_ok_containing(json!({
+      "kind": "regex"
+    }));
+  }
+
+  #[test]
+  fn test_only_rfc3339() {
+    let value = parse_to_value(
+      "2019-10-01T20:40:49Z",
+      &RegexMapping::from_str(r"^(?P<datetime>.+)$", "rfc3339"),
+      &None
+    );
+
+    assert_that!(value).is_ok_containing(json!({
+      "kind": "regex",
+      "timestamp": "2019-10-01T20:40:49Z"
+    }));
+  }
+
+  #[test]
+  fn test_only_rfc2822() {
+    let value = parse_to_value(
+      "Tue, 1 Jul 2003 10:52:37 +0200",
+      &RegexMapping::from_str(r"^(?P<datetime>.+)$", "rfc2822"),
+      &None
+    );
+
+    // input dates are normalized to rfc3339 and utc
+    assert_that!(value).is_ok_containing(json!({
+      "kind": "regex",
+      "timestamp": "2003-07-01T08:52:37Z"
+    }));
+  }
+
+  #[test]
+  fn test_metadata() {
+    let value = parse_to_value(
+      "foo bar",
+      &RegexMapping::from_str(r"^(?P<a>\S+) (?P<b>\S+)$", "rfc2822"),
+      &None
+    );
+
+    assert_that!(value).is_ok_containing(json!({
+      "kind": "regex",
+      "metadata": {
+        "a": "foo",
+        "b": "bar"
+      }
+    }));
+  }
 }
