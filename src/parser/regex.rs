@@ -141,8 +141,17 @@ pub fn parse_regex(
 mod tests {
   use super::*;
 
+  use regex::Regex;
   use serde_json::json;
   use simple_error::{SimpleResult, SimpleError};
+
+  fn mapping(pattern: &str, datetime: &str) -> RegexMapping {
+    RegexMapping {
+      pattern: Regex::new(pattern).unwrap(),
+      datetime: Some(String::from(datetime)),
+      datetime_prepend: None
+    }
+  }
 
   fn parse_to_value(
     line: &str, mapping: &RegexMapping, meta: &Option<ReaderMetadata>
@@ -157,7 +166,7 @@ mod tests {
   fn test_empty() {
     let value = parse_to_value(
       "",
-      &RegexMapping::from_str(r"", "rfc3339"),
+      &mapping(r"", "rfc3339"),
       &None
     );
 
@@ -170,7 +179,7 @@ mod tests {
   fn test_only_rfc3339() {
     let value = parse_to_value(
       "2019-10-01T20:40:49Z",
-      &RegexMapping::from_str(r"^(?P<datetime>.+)$", "rfc3339"),
+      &mapping(r"^(?P<datetime>.+)$", "rfc3339"),
       &None
     );
 
@@ -184,7 +193,7 @@ mod tests {
   fn test_only_rfc2822() {
     let value = parse_to_value(
       "Tue, 1 Jul 2003 10:52:37 +0200",
-      &RegexMapping::from_str(r"^(?P<datetime>.+)$", "rfc2822"),
+      &mapping(r"^(?P<datetime>.+)$", "rfc2822"),
       &None
     );
 
@@ -199,7 +208,7 @@ mod tests {
   fn test_metadata() {
     let value = parse_to_value(
       "foo bar",
-      &RegexMapping::from_str(r"^(?P<a>\S+) (?P<b>\S+)$", "rfc2822"),
+      &mapping(r"^(?P<a>\S+) (?P<b>\S+)$", "rfc2822"),
       &None
     );
 
@@ -208,6 +217,102 @@ mod tests {
       "metadata": {
         "a": "foo",
         "b": "bar"
+      }
+    }));
+  }
+
+  #[test]
+  fn test_invalid_date() {
+    let value = parse_to_value(
+      "2019-10-01T20:40:49Z",
+      &mapping(r"^(?P<datetime>.+)$", "rfc2822"),
+      &None
+    );
+
+    // invalid date should be null -> not included in json doc
+    assert_that!(value).is_ok_containing(json!({
+      "kind": "regex"
+    }));
+  }
+
+  #[test]
+  fn test_full_klog() {
+    let mapping = RegexMapping {
+      pattern: Regex::new(&format!(
+        r"^{}{}\s+{} {}] {}$",
+        r"(?P<level>[A-Z])",
+        r"(?P<datetime>\d{4} \d{2}:\d{2}:[\d\.]+)",
+        r"(?P<threadId>\d+)",
+        r"(?P<file>[\S.]+:\d+)",
+        r"(?P<text>.+)"
+      )).unwrap(),
+      datetime: Some(String::from("%Y %m%d %H:%M:%S%.f")),
+      datetime_prepend: Some(String::from("%Y"))
+    };
+
+    let value = parse_to_value(
+      "I0703 17:19:11.688460       1 controller.go:293] hello world",
+      &mapping,
+      &None
+    );
+
+    assert_that!(value).is_ok_containing(json!({
+      "kind": "regex",
+      "level": "info",
+      "text": "hello world",
+      "timestamp": "2019-07-03T17:19:11.688460Z",
+      "metadata": {
+        "threadId": "1",
+        "file": "controller.go:293"
+      }
+    }));
+  }
+
+  #[test]
+  fn test_klog_invalid() {
+    let mapping = RegexMapping {
+      pattern: Regex::new(&format!(
+        r"^{}{}\s+{} {}] {}$",
+        r"(?P<level>[A-Z])",
+        r"(?P<datetime>\d{4} \d{2}:\d{2}:[\d\.]+)",
+        r"(?P<threadId>\d+)",
+        r"(?P<file>[\S.]+:\d+)",
+        r"(?P<text>.+)"
+      )).unwrap(),
+      datetime: Some(String::from("%Y %m%d %H:%M:%S%.f")),
+      datetime_prepend: Some(String::from("%Y"))
+    };
+
+    let value = parse_to_value(
+      "foo",
+      &mapping,
+      &None
+    );
+
+    assert_that!(value).is_ok_containing(json!(null));
+  }
+
+  #[test]
+  fn test_full_docs_example() {
+    let value = parse_to_value(
+      "2019-07-03 12:02:13,977 - DEBUG    - test.py:9 - this is a debug message",
+      &mapping(&format!(
+        "^{} - {} - {} - {}$",
+        r"^(?P<datetime>[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2})(?:,[0-9]+)",
+        r"(?P<level>\w+)\s*",
+        r"(?P<file>\S+)\s*",
+        r"(?P<text>.+)$"
+      ), "%Y-%m-%d %H:%M:%S"),
+      &None
+    );
+
+    assert_that!(value).is_ok_containing(json!({
+      "kind": "regex",
+      "level": "debug",
+      "text": "this is a debug message",
+      "timestamp": "2019-07-03T12:02:13Z",
+      "metadata": {
+        "file": "test.py:9"
       }
     }));
   }

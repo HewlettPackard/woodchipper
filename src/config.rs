@@ -202,17 +202,6 @@ pub struct RegexMapping {
   pub datetime_prepend: Option<String>
 }
 
-impl RegexMapping {
-  /// Manually creates a new RegexMapping; used mainly in tests
-  pub fn from_str(pattern: &str, datetime: &str) -> RegexMapping {
-    RegexMapping {
-      pattern: Regex::new(pattern).unwrap(),
-      datetime: Some(String::from(datetime)),
-      datetime_prepend: None
-    }
-  }
-}
-
 #[derive(Debug)]
 pub struct RegexConfig {
   pub mappings: Vec<RegexMapping>
