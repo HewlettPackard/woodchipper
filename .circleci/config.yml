@@ -18,6 +18,9 @@ jobs:
               cargo update -p woodchipper
             fi
       - run:
+          name: Run unit tests on linux x86_64
+          command: cargo test
+      - run:
           name: Build static linux x86_64
           command: cargo build --release --locked
       - save_cache:
@@ -62,6 +65,8 @@ jobs:
 
               cargo update -p woodchipper
             fi
+      # running unit tests on cross-compiled windows binaries doesn't seem
+      # especially productive
       - run:
           name: Build windows x86_64
           command: |
