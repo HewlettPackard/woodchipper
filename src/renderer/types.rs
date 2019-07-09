@@ -69,9 +69,9 @@ impl LogEntry {
   }
 
   pub fn message(
-    line: &str, meta: Option<ReaderMetadata>
+    config: Arc<Config>, line: &str, meta: Option<ReaderMetadata>
   ) -> Result<Option<LogEntry>, Box<Error>> {
-    let message = match parse(&line, meta)? {
+    let message = match parse(config, &line, meta)? {
       Some(message) => message,
       None => return Ok(None)
     };

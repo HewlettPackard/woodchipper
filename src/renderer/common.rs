@@ -685,8 +685,8 @@ mod tests {
     assert_that!(&merge_chunks(&spacers(1), &normal).width).is_equal_to(10);
 
     let merged = merge_chunks(&spacers(3), &normal);
-    assert_that!(merged.width).is_equal_to(30);
-    assert_that!(merged.content.chars().count()).is_equal_to(30);
+    assert_that!(merged.width).is_equal_to(32);
+    assert_that!(merged.content.chars().count()).is_equal_to(32);
   }
 
   #[test]
@@ -715,8 +715,8 @@ mod tests {
   fn test_merge_chunks_unpadded() {
     let merged = merge_chunks_unpadded(&spacers(3));
     assert_that!(merged.width).is_equal_to(30);
-    assert_that!(merged.pad_left).is_equal_to(false);
-    assert_that!(merged.pad_right).is_equal_to(false);
+    assert_that!(merged.pad_left).is_equal_to(true);
+    assert_that!(merged.pad_right).is_equal_to(true);
 
     let merged = merge_chunks_unpadded(&get_simple_padded());
     assert_that!(merged.content).is_equal_to("foobarbaz".to_string());
@@ -769,7 +769,7 @@ mod tests {
   #[test]
   fn test_measure_chunks() {
     assert_that!(measure_chunks(&spacers(1))).is_equal_to(10);
-    assert_that!(measure_chunks(&spacers(3))).is_equal_to(30);
+    assert_that!(measure_chunks(&spacers(3))).is_equal_to(32);
     assert_that!(measure_chunks(&get_simple_padded())).is_equal_to(11);
     assert_that!(measure_chunks(&get_simple_unpadded())).is_equal_to(9);
 

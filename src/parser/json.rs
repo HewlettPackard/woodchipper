@@ -2,11 +2,13 @@
 
 use std::collections::HashMap;
 use std::error::Error;
+use std::sync::Arc;
 
 use chrono::prelude::*;
 use regex::Regex;
 use serde_json::{self, Value, Map};
 
+use crate::config::Config;
 use super::types::{
   LogLevel, MappingField, Message, MessageKind, ReaderMetadata
 };
@@ -156,7 +158,7 @@ pub fn parse_document(
 }
 
 pub fn parse_json(
-  line: &str, meta: Option<ReaderMetadata>
+  _config: Arc<Config>, line: &str, meta: Option<ReaderMetadata>
 ) -> Result<Option<Message>, Box<Error>> {
   // skip anything that doesn't at least vaguely look like json
   if !line.starts_with('{') || !line.ends_with('}') {

@@ -18,7 +18,7 @@ use crate::renderer::LogEntry;
 /// note that this _probably_ only works on linux, other OSes may need to run
 /// their application via a subprocess or just fall back to the styled renderer
 pub fn read_stdin_hack(
-  _config: Arc<Config>,
+  config: Arc<Config>,
   tx: Sender<LogEntry>,
   _exit_req_rx: Receiver<()>,
   _exit_resp_tx: Sender<()>
@@ -31,7 +31,7 @@ pub fn read_stdin_hack(
       let line = line.map_err(SimpleError::from)?;
       empty = false;
 
-      match LogEntry::message(&line, None) {
+      match LogEntry::message(Arc::clone(&config), &line, None) {
         Ok(Some(entry)) => match tx.send(entry) {
           Ok(_) => (),
           Err(_) => break

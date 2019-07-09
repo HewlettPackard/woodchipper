@@ -1,11 +1,13 @@
 // (C) Copyright 2019 Hewlett Packard Enterprise Development LP
 
 use std::error::Error;
+use std::sync::Arc;
 
 use pest::Parser;
 use serde_json::{self, Value, Map};
 use simple_error::SimpleError;
 
+use crate::config::Config;
 use super::types::{Message, ReaderMetadata};
 use super::json::parse_document;
 
@@ -64,7 +66,7 @@ pub fn logrus_to_document(
 }
 
 pub fn parse_logrus(
-  line: &str, meta: Option<ReaderMetadata>
+  _config: Arc<Config>, line: &str, meta: Option<ReaderMetadata>
 ) -> Result<Option<Message>, Box<Error>> {
   match logrus_to_document(line) {
     Ok(doc) => parse_document(doc, meta),

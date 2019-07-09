@@ -14,6 +14,7 @@ terminal.
    reflow, and clipboard support
  * Built-in Kubernetes support follows multiple pods and containers at
    once
+ * User-customizable output styles and custom log formats (see [customization])
 
 ## Quick Start
 
@@ -121,6 +122,7 @@ potentially mixed together:
  * [logrus]-style key/value pair logs, e.g. `time="..." msg="hello world"`
  * [klog] logs for Kubernetes components
  * Plaintext logs with inferred timestamps and log levels
+ * User-specified custom formats with the [regex parser][regex]
 
 ## Similar Projects
 
@@ -150,9 +152,11 @@ end of your commit message.
 Additionally, the [design documentation][design] may be a helpful resource for
 understanding how woodchipper works.
 
+[customization]: ./doc/customization.md
 [plugin]: ./misc/kubectl-woodchipper
 [releases]: https://github.com/HewlettPackard/woodchipper/releases/latest
 [klog]: https://github.com/kubernetes/klog
+[regex]: ./doc/customization.md#log-formats
 [stern]: https://github.com/wercker/stern
 [logrus]: https://github.com/sirupsen/logrus
 [slog]: https://github.com/slog-rs/slog
