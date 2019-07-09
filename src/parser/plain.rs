@@ -2,6 +2,8 @@
 
 use std::collections::HashMap;
 use std::error::Error;
+use std::panic;
+use std::sync::Arc;
 
 use chrono::prelude::*;
 use dtparse::Parser;
@@ -98,28 +100,34 @@ pub fn parse_plain(
   } else {
     // TODO: try to remove timestamp from text?
     // TODO: tzinfos would be nice to detect named timezones...
-    let parser = Parser::default();
 
-    let parse_result = parser.parse(
-      line,
-      None, // dayfirst
-      None, // yearfirst
-      true, // fuzzy
-      true, // fuzzy_with_tokens
-      None, // default
-      false, // ignoretz
-      &HashMap::new() // tzinfos
-    );
+    // dtparse has some nasty unwraps that fail on some inputs, so instead of
+    // being sensible and patching or removing dtparse, let's be naughty and
+    // catch the parse error
+    let parse_result = panic::catch_unwind(move || {
+      let parser = Parser::default();
+
+      parser.parse(
+        line,
+        None, // dayfirst
+        None, // yearfirst
+        true, // fuzzy
+        true, // fuzzy_with_tokens
+        None, // default
+        false, // ignoretz
+        &HashMap::new() // tzinfos
+      )
+    });
 
     match parse_result {
-      Ok((datetime, offset, tokens)) => {
+      Ok(Ok((datetime, offset, tokens))) => {
         if crappy_is_false_positive(line, tokens) {
           None
         } else {
           Some(normalize_datetime(&datetime, offset))
         }
       },
-      Err(_) => None
+      _ => None
     }
   };
 
