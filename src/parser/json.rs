@@ -12,7 +12,7 @@ use crate::config::Config;
 use super::types::{
   LogLevel, MappingField, Message, MessageKind, ReaderMetadata
 };
-use super::util::{parse_timestamp, normalize_datetime};
+use super::util::normalize_datetime;
 
 static TIMESTAMP_FIELDS: &[&str] = &["timestamp", "@timestamp", "time", "ts"];
 static LEVEL_FIELDS: &[&str] = &["level"];
@@ -61,7 +61,7 @@ pub fn parse_rfc2822(s: &str) -> Option<DateTime<Utc>> {
 pub fn parse_rfc3339(s: &str) -> Option<DateTime<Utc>> {
   lazy_static! {
     static ref RE: Regex = Regex::new(
-      r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::[\d.]+)?(?:Z|-\d{2}:\d{2})"
+      r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::[\d.]+)?(?:Z|[+-]\d{2}:\d{2})"
     ).unwrap();
   }
 
@@ -72,13 +72,6 @@ pub fn parse_rfc3339(s: &str) -> Option<DateTime<Utc>> {
     }
   } else {
     None
-  }
-}
-
-pub fn parse_freeform(s: &str) -> Option<DateTime<Utc>> {
-  match parse_timestamp(s) {
-    Ok((datetime, offset)) => Some(normalize_datetime(&datetime, offset)),
-    Err(_) => None
   }
 }
 
@@ -94,7 +87,6 @@ pub fn get_timestamp(msg: &Map<String, Value>) -> Option<(&str, DateTime<Utc>)> 
 
     parse_rfc3339(v_str)
       .or_else(|| parse_rfc2822(v_str))
-      .or_else(|| parse_freeform(v_str))
       .and_then(|dt| Some((k, dt)))
   } else {
     None
