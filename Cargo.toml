@@ -33,11 +33,14 @@ ansi_term = "0.11.0"
 shellexpand = "1.0.0"
 atty = "0.2.11"
 jsonpath = "0.1.1"
-reqwest = "0.9"
+reqwest = { version = "0.9", features = ["rustls-tls"], default-features = false }
 rand = "0.6"
 subprocess = "0.1"
 pest = "2.1"
 pest_derive = "2.1"
+env_proxy = "0.3"
+snafu = "0.4"
+base64 = "0.10"
 
 [target.'cfg(not(target_env = "musl"))'.dependencies]
 clipboard = "0.5.0"
