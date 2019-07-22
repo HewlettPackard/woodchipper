@@ -9,7 +9,9 @@ use std::path::{Path, PathBuf};
 
 use base64;
 use chrono::{DateTime, offset::Utc};
-use reqwest::{Client, ClientBuilder, RequestBuilder, Identity};
+use reqwest::{
+  Certificate, Client, ClientBuilder, RequestBuilder, Identity, IntoUrl
+};
 use serde::Deserialize;
 use serde::de::{self, Visitor, Deserializer};
 use serde_json::Value;
@@ -43,6 +45,13 @@ pub enum Error {
   ContextNotFound {
     path: PathBuf,
     context: Option<String>
+  },
+
+  #[snafu(display(
+    "could not add auth header: {}", message
+  ))]
+  InvalidAuthHeader {
+    message: String
   },
 
   #[snafu(display(
@@ -84,10 +93,27 @@ pub enum Error {
   AuthPluginDeserialize {
     command: String,
     source: serde_yaml::Error
+  },
+
+  #[snafu(display(
+    "error converting pem to der"
+  ))]
+  CertificateConversionError {
+    message: String
+  },
+
+  #[snafu(display(
+    "certificate could not be parsed from {}: {}",
+    context, source
+  ))]
+  InvalidCertificate {
+    context: String,
+    source: reqwest::Error
   }
 }
 
 /// "Alias" for Vec<u8> to avoid puking raw cert data on Debug
+#[derive(Clone)]
 pub struct Bytes(Vec<u8>);
 
 impl Deref for Bytes {
@@ -205,14 +231,17 @@ where
 pub enum ClusterCertificateAuthority {
   #[serde(rename_all = "kebab-case")]
   File {
-    #[serde(deserialize_with = "de_path_bytes")]
-    certificate_authority: Bytes
+    #[serde(rename = "certificate-authority", deserialize_with = "de_path_bytes")]
+    certificate: Bytes
   },
 
   #[serde(rename_all = "kebab-case")]
   Embedded {
-    #[serde(deserialize_with = "de_base64_bytes")]
-    certificate_authority_data: Bytes
+    #[serde(
+      rename = "certificate-authority-data",
+      deserialize_with = "de_base64_bytes"
+    )]
+    certificate: Bytes
   }
 }
 
@@ -258,7 +287,7 @@ pub struct ContextContainer {
   pub context: Context
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct ExecAuth {
   #[serde(rename = "apiVersion")]
   pub api_version: String,
@@ -301,7 +330,7 @@ pub struct ExecCredential {
   pub status: ExecCredentialStatus
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 #[serde(untagged)]
 pub enum Auth {
   Plain {
@@ -399,7 +428,27 @@ impl Auth {
     concat.extend_from_slice(&cert);
     concat.extend_from_slice(&key);
 
+    // rustls doesn't support ip address hosts
+    //  - https://github.com/ctz/hyper-rustls/issues/56
+    //  - https://github.com/ctz/rustls/issues/184
+    //  - https://github.com/briansmith/webpki/issues/54
+    //
+    // also, native-tls doesn't support PEMs, or at least if it does, reqwest
+    // doesn't expose that functionality
+    //
+    // I think we'll need to keep the kubectl subprocess workaround handy for
+    // this case since it affects basically all non-cloud kubernetes apis
+
     Identity::from_pem(&concat).context(InvalidIdentity {}).map(Some)
+  }
+
+  pub fn token(&self) -> Option<&str> {
+    match self {
+      Auth::Token { token } => {
+        Some(&token)
+      },
+      _ => None
+    }
   }
 }
 
@@ -419,30 +468,6 @@ impl From<ExecCredential> for Auth {
         }
       }
     }
-  }
-}
-
-struct KubernetesClient {
-  server: String,
-
-  auth: Auth,
-  client: Client
-}
-
-impl KubernetesClient {
-  pub fn new(server: String, auth: Auth) -> Result<KubernetesClient> {
-    let mut builder = Client::builder();
-
-    if let Some(identity) = auth.identity()? {
-      builder = builder.identity(identity);
-    }
-
-    let client = KubernetesClient {
-      server, auth,
-      client: builder.build().context(ReqwestInit {})?
-    };
-
-    Ok(client)
   }
 }
 
@@ -522,5 +547,90 @@ impl KubernetesConfig {
     let reader = BufReader::new(file);
 
     serde_yaml::from_reader(reader).context(ConfigDeserialize { path })
+  }
+}
+
+pub struct KubernetesClient {
+  server: String,
+  namespace: String,
+
+  auth: Auth,
+  client: Client
+}
+
+impl KubernetesClient {
+  pub fn new(context: &ResolvedContext) -> Result<KubernetesClient> {
+    let mut builder = Client::builder()
+      .use_rustls_tls()
+      .use_sys_proxy();;
+
+    // do some basic cleanup of the server, the k8s api likes to reject calls
+    // with extra slashes
+    let server = context.cluster.server.clone()
+      .trim_end_matches("/")
+      .to_string();
+
+    // TODO: insert context.auth.exec() call here...
+
+    let mut headers = reqwest::header::HeaderMap::new();
+
+    if let Some(token) = context.auth.token() {
+      headers.insert(
+        reqwest::header::AUTHORIZATION,
+        reqwest::header::HeaderValue::from_str(&format!("Bearer {}", token))
+          .map_err(|e| Error::InvalidAuthHeader {
+            message: e.to_string()
+          })?
+      );
+    }
+
+    builder = builder.default_headers(headers);
+
+    if let Some(identity) = context.auth.identity()? {
+      builder = builder.identity(identity);
+    }
+
+    match &context.cluster.certificate_authority {
+      Some(ClusterCertificateAuthority::File { certificate }) => {
+        let cert = Certificate::from_pem(&certificate)
+          .context(InvalidCertificate {
+            context: "certificate-authority".to_owned()
+          })?;
+
+        builder = builder.add_root_certificate(cert);
+      },
+      Some(ClusterCertificateAuthority::Embedded { certificate }) => {
+        let cert = Certificate::from_pem(&certificate)
+          .context(InvalidCertificate {
+            context: "certificate-authority-data".to_owned()
+          })?;
+
+        builder = builder.add_root_certificate(cert);
+      },
+      _ => ()
+    };
+
+    let client = KubernetesClient {
+      server: server,
+      namespace: context.namespace.to_owned(),
+      auth: context.auth.clone(),
+      client: builder.build().context(ReqwestInit {})?
+    };
+
+    Ok(client)
+  }
+
+  pub fn get<S: Into<String>>(&self, path: S) -> RequestBuilder {
+    self.client.get(&format!(
+      "{}/{}",
+      self.server, path.into().trim_start_matches("/")
+    ))
+  }
+
+  pub fn post<S: Into<String>>(&self, path: S) -> RequestBuilder {
+    self.client.post(&format!(
+      "{}/{}",
+      self.server, path.into().trim_start_matches("/")
+    ))
   }
 }
