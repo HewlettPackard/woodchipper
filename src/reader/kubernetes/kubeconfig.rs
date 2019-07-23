@@ -10,12 +10,13 @@ use std::path::{Path, PathBuf};
 use base64;
 use chrono::{DateTime, offset::Utc};
 use reqwest::{
-  Certificate, Client, ClientBuilder, RequestBuilder, Identity, IntoUrl
+  Certificate, Client, ClientBuilder, RequestBuilder, Identity, IntoUrl,
+  header::{AUTHORIZATION, HeaderValue, HeaderMap}
 };
 use serde::Deserialize;
 use serde::de::{self, Visitor, Deserializer};
 use serde_json::Value;
-use snafu::{ensure, Backtrace, ErrorCompat, ResultExt, Snafu};
+use snafu::{ensure, ResultExt, Snafu};
 use subprocess;
 
 #[derive(Debug, Snafu)]
@@ -145,7 +146,6 @@ impl<'de> Visitor<'de> for BytesFromPathStr {
   where
     E: de::Error
   {
-    let f = File::open(s);
     match File::open(s) {
       Ok(mut file) => {
         let mut data = Vec::new();
@@ -226,23 +226,36 @@ where
   deserializer.deserialize_str(BytesFromStr)
 }
 
-#[derive(Debug, Deserialize)]
-#[serde(untagged)]
-pub enum ClusterCertificateAuthority {
-  #[serde(rename_all = "kebab-case")]
-  File {
-    #[serde(rename = "certificate-authority", deserialize_with = "de_path_bytes")]
-    certificate: Bytes
-  },
+// https://github.com/vityafx/serde-aux/blob/574574cbb3d38568454707846edd2387bf4b0e48/src/field_attributes.rs#L360-L366
+// (MIT)
+fn de_default_from_null<'de, D, T>(deserializer: D) -> Result<T, D::Error>
+where
+  D: Deserializer<'de>,
+  T: Deserialize<'de> + Default,
+{
+  Ok(Option::deserialize(deserializer)?.unwrap_or_default())
+}
 
-  #[serde(rename_all = "kebab-case")]
-  Embedded {
-    #[serde(
-      rename = "certificate-authority-data",
-      deserialize_with = "de_base64_bytes"
-    )]
-    certificate: Bytes
-  }
+#[derive(Debug, Deserialize, Clone)]
+pub struct ClusterCAFile {
+  #[serde(rename = "certificate-authority", deserialize_with = "de_path_bytes")]
+  certificate: Bytes
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct ClusterCAEmbedded {
+  #[serde(
+    rename = "certificate-authority-data",
+    deserialize_with = "de_base64_bytes"
+  )]
+  certificate: Bytes
+}
+
+#[derive(Debug, Deserialize, Clone)]
+#[serde(untagged)]
+pub enum ClusterCA {
+  File(ClusterCAFile),
+  Embedded(ClusterCAEmbedded)
 }
 
 fn default_skip_tls_verify() -> bool {
@@ -250,7 +263,7 @@ fn default_skip_tls_verify() -> bool {
 }
 
 #[serde(rename_all = "kebab-case")]
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct Cluster {
   server: String,
 
@@ -258,7 +271,7 @@ pub struct Cluster {
   insecure_skip_tls_verify: bool,
 
   #[serde(flatten)]
-  certificate_authority: Option<ClusterCertificateAuthority>
+  certificate_authority: Option<ClusterCA>
 }
 
 #[derive(Debug, Deserialize)]
@@ -296,28 +309,42 @@ pub struct ExecAuth {
   #[serde(default)]
   pub args: Vec<String>,
 
-  #[serde(default)]
+  #[serde(deserialize_with = "de_default_from_null")]
   pub env: HashMap<String, String>
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExecCredentialToken {
+  token: String,
+  expiration_timestamp: Option<DateTime<Utc>>
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExecCredentialCertificateEmbedded {
+  #[serde(rename = "clientCertificateData", deserialize_with = "de_str_bytes")]
+  certificate: Bytes,
+
+  #[serde(rename = "clientKeyData", deserialize_with = "de_str_bytes")]
+  key: Bytes,
+
+  expiration_timestamp: Option<DateTime<Utc>>
 }
 
 #[derive(Debug, Deserialize)]
 #[serde(untagged)]
 pub enum ExecCredentialStatus {
-  #[serde(rename_all = "camelCase")]
-  Token {
-    token: String,
-    expiration_timestamp: Option<DateTime<Utc>>
-  },
+  Token(ExecCredentialToken),
+  CertificateEmbedded(ExecCredentialCertificateEmbedded)
+}
 
-  #[serde(rename_all = "camelCase")]
-  CertificateEmbedded {
-    #[serde(rename = "clientCertificateData", deserialize_with = "de_str_bytes")]
-    certificate: Bytes,
-
-    #[serde(rename = "clientKeyData", deserialize_with = "de_str_bytes")]
-    key: Bytes,
-
-    expiration_timestamp: Option<DateTime<Utc>>
+impl ExecCredentialStatus {
+  pub fn expiration(&self) -> Option<DateTime<Utc>> {
+    match self {
+      ExecCredentialStatus::CertificateEmbedded(cred) => cred.expiration_timestamp,
+      ExecCredentialStatus::Token(cred) => cred.expiration_timestamp
+    }
   }
 }
 
@@ -331,54 +358,64 @@ pub struct ExecCredential {
 }
 
 #[derive(Debug, Deserialize, Clone)]
+pub struct AuthPlain {
+  username: String,
+  password: String
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct AuthToken {
+  token: String
+}
+
+#[derive(Debug, Deserialize, Clone)]
+#[serde(rename_all = "kebab-case")]
+pub struct AuthCertificateFile {
+  #[serde(rename = "client-certificate", deserialize_with = "de_path_bytes")]
+  certificate: Bytes,
+
+  #[serde(rename = "client-key", deserialize_with = "de_path_bytes")]
+  key: Bytes
+}
+
+#[derive(Debug, Deserialize, Clone)]
+#[serde(rename_all = "kebab-case")]
+pub struct AuthCertificateEmbedded {
+  #[serde(
+    rename = "client-certificate-data",
+    deserialize_with = "de_base64_bytes"
+  )]
+  certificate: Bytes,
+
+  #[serde(
+    rename = "client-key-data",
+    deserialize_with = "de_base64_bytes"
+  )]
+  key: Bytes
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct AuthExec {
+  exec: ExecAuth
+}
+
+#[derive(Debug, Deserialize, Clone)]
 #[serde(untagged)]
 pub enum Auth {
-  Plain {
-    username: String,
-    password: String,
-  },
-
-  Token {
-    token: String,
-  },
-
-  #[serde(rename_all = "kebab-case")]
-  CertificateFile {
-    #[serde(rename = "client-certificate", deserialize_with = "de_path_bytes")]
-    certificate: Bytes,
-
-    #[serde(rename = "client-key", deserialize_with = "de_path_bytes")]
-    key: Bytes
-  },
-
-  #[serde(rename_all = "kebab-case")]
-  CertificateEmbedded {
-    #[serde(
-      rename = "client-certificate-data",
-      deserialize_with = "de_base64_bytes"
-    )]
-    certificate: Bytes,
-
-    #[serde(
-      rename = "client-key-data",
-      deserialize_with = "de_base64_bytes"
-    )]
-    key: Bytes
-  },
-
-  Exec {
-    exec: ExecAuth
-  },
-
-  Null {}
+  Plain(AuthPlain),
+  Token(AuthToken),
+  CertificateFile(AuthCertificateFile),
+  CertificateEmbedded(AuthCertificateEmbedded),
+  Exec(AuthExec),
+  Null
 }
 
 impl Auth {
   /// Attempts to retrieve an ExecCredential if this is an Auth::Exec, otherwise
   /// returns Some(None)
   pub fn exec(&self) -> Result<Option<ExecCredential>> {
-    let exec = if let Auth::Exec { exec } = self {
-      exec
+    let exec = if let Auth::Exec(exec) = self {
+      &exec.exec
     } else {
       return Ok(None);
     };
@@ -414,11 +451,11 @@ impl Auth {
   /// if any exists.
   pub fn identity(&self) -> Result<Option<Identity>> {
     let (cert, key) = match self {
-      Auth::CertificateFile { certificate, key } => {
-        (certificate, key)
+      Auth::CertificateFile(auth) => {
+        (&auth.certificate, &auth.key)
       },
-      Auth::CertificateEmbedded { certificate, key} => {
-        (certificate, key)
+      Auth::CertificateEmbedded(auth) => {
+        (&auth.certificate, &auth.key)
       },
       _ => return Ok(None)
     };
@@ -444,8 +481,21 @@ impl Auth {
 
   pub fn token(&self) -> Option<&str> {
     match self {
-      Auth::Token { token } => {
-        Some(&token)
+      Auth::Token(auth) => {
+        Some(&auth.token)
+      },
+      _ => None
+    }
+  }
+
+  pub fn basic(&self) -> Option<String> {
+    match self {
+      Auth::Plain(auth) => {
+        let bytes: Vec<u8> = format!("{}:{}", &auth.username, &auth.password)
+          .bytes()
+          .collect();
+
+        Some(base64::encode(&bytes))
       },
       _ => None
     }
@@ -461,11 +511,14 @@ impl Default for Auth {
 impl From<ExecCredential> for Auth {
   fn from(exec: ExecCredential) -> Self {
     match exec.status {
-      ExecCredentialStatus::Token { token, .. } => Auth::Token { token },
-      ExecCredentialStatus::CertificateEmbedded { certificate, key, .. } => {
-        Auth::CertificateEmbedded {
-          certificate, key
-        }
+      ExecCredentialStatus::Token(cred) => {
+        Auth::Token(AuthToken { token: cred.token })
+      },
+      ExecCredentialStatus::CertificateEmbedded(cred) => {
+        Auth::CertificateEmbedded(AuthCertificateEmbedded {
+          certificate: cred.certificate,
+          key: cred.key
+        })
       }
     }
   }
@@ -550,57 +603,82 @@ impl KubernetesConfig {
   }
 }
 
+#[derive(Debug)]
 pub struct KubernetesClient {
   server: String,
-  namespace: String,
-
+  cluster: Cluster,
   auth: Auth,
-  client: Client
+  pub namespace: String,
+
+  client: Client,
+
+  pub auth_expiration: Option<DateTime<Utc>>
 }
 
 impl KubernetesClient {
-  pub fn new(context: &ResolvedContext) -> Result<KubernetesClient> {
+  pub fn new(
+    cluster: Cluster,
+    auth: Auth,
+    namespace: &str
+  ) -> Result<KubernetesClient> {
     let mut builder = Client::builder()
       .use_rustls_tls()
-      .use_sys_proxy();;
+      .use_sys_proxy();
+
+    if cluster.insecure_skip_tls_verify {
+      builder = builder.danger_accept_invalid_certs(true);
+    }
 
     // do some basic cleanup of the server, the k8s api likes to reject calls
     // with extra slashes
-    let server = context.cluster.server.clone()
-      .trim_end_matches("/")
-      .to_string();
+    let server = cluster.server.trim_end_matches('/').to_string();
 
-    // TODO: insert context.auth.exec() call here...
+    let mut auth_expiration = None;
+    let runtime_auth = if let Some(exec) = auth.exec()? {
+      auth_expiration = exec.status.expiration();
+      exec.into()
+    } else {
+      auth.clone()
+    };
 
-    let mut headers = reqwest::header::HeaderMap::new();
-
-    if let Some(token) = context.auth.token() {
+    let mut headers = HeaderMap::new();
+    if let Some(token) = runtime_auth.token() {
       headers.insert(
-        reqwest::header::AUTHORIZATION,
-        reqwest::header::HeaderValue::from_str(&format!("Bearer {}", token))
-          .map_err(|e| Error::InvalidAuthHeader {
+        AUTHORIZATION,
+        HeaderValue::from_str(&format!("Bearer {}", token)).map_err(|e| {
+          Error::InvalidAuthHeader {
             message: e.to_string()
-          })?
+          }
+        })?
+      );
+    } else if let Some(basic) = runtime_auth.basic() {
+      headers.insert(
+        AUTHORIZATION,
+        HeaderValue::from_str(&format!("Basic {}", basic)).map_err(|e| {
+          Error::InvalidAuthHeader {
+            message: e.to_string()
+          }
+        })?
       );
     }
 
     builder = builder.default_headers(headers);
 
-    if let Some(identity) = context.auth.identity()? {
+    if let Some(identity) = runtime_auth.identity()? {
       builder = builder.identity(identity);
     }
 
-    match &context.cluster.certificate_authority {
-      Some(ClusterCertificateAuthority::File { certificate }) => {
-        let cert = Certificate::from_pem(&certificate)
+    match &cluster.certificate_authority {
+      Some(ClusterCA::File(ca)) => {
+        let cert = Certificate::from_pem(&ca.certificate)
           .context(InvalidCertificate {
             context: "certificate-authority".to_owned()
           })?;
 
         builder = builder.add_root_certificate(cert);
       },
-      Some(ClusterCertificateAuthority::Embedded { certificate }) => {
-        let cert = Certificate::from_pem(&certificate)
+      Some(ClusterCA::Embedded(ca)) => {
+        let cert = Certificate::from_pem(&ca.certificate)
           .context(InvalidCertificate {
             context: "certificate-authority-data".to_owned()
           })?;
@@ -610,27 +688,63 @@ impl KubernetesClient {
       _ => ()
     };
 
+    // initialize the client with the original auth (possibly exec) so we can
+    // re-auth later if necessary (expired token, etc)
     let client = KubernetesClient {
-      server: server,
-      namespace: context.namespace.to_owned(),
-      auth: context.auth.clone(),
+      server, cluster, auth, auth_expiration,
+      namespace: namespace.to_owned(),
       client: builder.build().context(ReqwestInit {})?
     };
 
     Ok(client)
   }
 
+  /// Creates a new KubernetesClient from a ResolvedContext
+  pub fn from_context(context: &ResolvedContext) -> Result<KubernetesClient> {
+    KubernetesClient::new(
+      context.cluster.clone(),
+      context.auth.clone(),
+      context.namespace
+    )
+  }
+
+  /// If the current auth method has some expiration timestamp, returns true if
+  /// the current credentials have expired.
+  ///
+  /// New credentials can be acquired using `KubernetesClient::reauth()`. At the
+  /// moment, only Exec credentials can expire.
+  pub fn is_expired(&self) -> bool {
+    if let Some(expiration) = self.auth_expiration {
+      expiration < Utc::now()
+    } else {
+      false
+    }
+  }
+
+  /// Consumes this KubernetesClient to create a new client instance,
+  /// potentially refreshing expired credentials depending on the auth type.
+  ///
+  /// `KubernetesClient::is_expired()` may be used to check if the current set
+  /// of credentials has expired.
+  pub fn reauthenticate(self) -> Result<KubernetesClient> {
+    KubernetesClient::new(
+      self.cluster,
+      self.auth,
+      &self.namespace
+    )
+  }
+
   pub fn get<S: Into<String>>(&self, path: S) -> RequestBuilder {
     self.client.get(&format!(
       "{}/{}",
-      self.server, path.into().trim_start_matches("/")
+      self.server, path.into().trim_start_matches('/')
     ))
   }
 
   pub fn post<S: Into<String>>(&self, path: S) -> RequestBuilder {
     self.client.post(&format!(
       "{}/{}",
-      self.server, path.into().trim_start_matches("/")
+      self.server, path.into().trim_start_matches('/')
     ))
   }
 }
