@@ -6,7 +6,6 @@ extern crate atty;
 extern crate chrono;
 #[cfg(not(target_os = "linux"))] extern crate clipboard;
 extern crate crossterm;
-extern crate dtparse;
 #[macro_use] extern crate lazy_static;
 #[macro_use] extern crate maplit;
 extern crate pest;

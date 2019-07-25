@@ -176,7 +176,7 @@ mod tests {
   #[test]
   fn test_message() {
     assert_that!(parse_message(
-      r#"time="2019-07-10T14:14:13.950289" level=debug msg="hello world""#
+      r#"time="2019-07-10T14:14:13.950289Z" level=debug msg="hello world""#
     )).is_ok_containing(json!({
       "kind": "logrus",
       "timestamp": "2019-07-10T14:14:13.950289Z",
