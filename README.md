@@ -65,6 +65,49 @@ Alternatively, if you'd just like to print the colorized logs to your terminal:
 ./logs.sh | woodchipper -r styled
 ```
 
+If you don't like the interactive viewer but still want a pager, try `less`:
+```bash
+cat logs.txt | woodchipper -r styled | less
+```
+
+(try `less -R` if your `less` doesn't pass through ANSI escapes by default)
+
+### Interactive Viewer
+
+The interactive viewer provides an improved pager with regex searching and
+filtering. It's enabled by default if woodchipper is attached to a tty.
+
+A number of keyboard shortcuts are available:
+
+ * `up`, `down`: move the cursor one message at a time
+ * `page up`, `page down`: scroll one screenful at a time
+ * `home`, `end`: move to the start or end of all messages
+ * `f`, `|`: add a filter to the stack
+   * a filter regex may be freely entered
+   * invalid filter regexes are highlighted in red
+   * matching messages are highlighted as you type
+   * `enter`: add the filter to the stack and remove all non-matching messages
+   * `esc`: cancel filter
+ * `p`: pop the last filter from the stack
+ * `/`, `ctrl-f`: search for a particular message; when in filter mode:
+   * a search regex may be freely entered
+   * invalid search regexes are highlighted in red
+   * all matching messages will be highlighted; the cursor will jump to the
+     nearest forward match as you type
+   * `enter`: next match
+   * `ctrl-p`: previous match
+   * `esc`: end search; if a result is highlighted, it will remain highlighted
+ * `c`: copy the selected message to the clipboard as shareable plain text
+ * `shift-c`: copy the current screen to the clipboard as shareable plain text
+ * `q`: quit
+
+The interactive viewer works best with terminal emulators that treat mouse wheel
+input as up / down keypresses when in alternate screen mode. KDE's Konsole
+behaves this way by default, and this may be enabled in iTerm2 in Preferences ->
+Advanced -> Mouse -> "Scroll wheel sends arrow keys when in alternative screen
+mode". An option to capture mouse events on all terminals may be added in the
+future, however doing so disables text selection and isn't ideal.
+
 ### kubectl plugin
 
 > *For `kubectl` 1.13+, [read more][kubectl-plugins]*
