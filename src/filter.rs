@@ -2,9 +2,7 @@
 
 use std::marker::Sized;
 
-use jsonpath::Selector;
 use regex::Regex;
-use serde_json;
 use simple_error::{SimpleError, SimpleResult};
 
 use crate::parser::Message;
@@ -16,17 +14,15 @@ pub trait Filter {
 
 #[derive(Debug, Copy, Clone)]
 pub enum FilterMode {
-  Text,
-  Regex,
-  Json
+  #[allow(dead_code)] Text,
+  Regex
 }
 
 impl FilterMode {
   pub fn parse(self, filter: &str) -> SimpleResult<Box<Filter>> {
     Ok(match self {
       FilterMode::Text => Box::new(FullTextFilter::new(filter)?),
-      FilterMode::Regex => Box::new(RegexFilter::new(filter)?),
-      FilterMode::Json => Box::new(JsonPathFilter::new(filter)?)
+      FilterMode::Regex => Box::new(RegexFilter::new(filter)?)
     })
   }
 }
@@ -114,29 +110,3 @@ impl Filter for RegexFilter {
     false
   }
 }
-
-pub struct JsonPathFilter {
-  selector: Selector
-}
-
-impl Filter for JsonPathFilter {
-  fn new(expression: &str) -> SimpleResult<Self> {
-    Selector::new(expression)
-      .map_err(SimpleError::from)
-      .map(|selector| JsonPathFilter { selector })
-  }
-
-  fn filter(&self, message: &Message) -> bool {
-    // partially re-serialize message to filter it...
-    // if this fails (it shouldn't), ignore and move on
-    let val = match serde_json::value::to_value(message) {
-      Ok(val) => val,
-      Err(_) => return false
-    };
-
-    // we don't actually care about the match value here, and just want to know
-    // if the selector at least matches something
-    self.selector.find(&val).next().is_some()
-  }
-}
-
