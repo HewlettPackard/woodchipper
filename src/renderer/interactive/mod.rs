@@ -6,7 +6,7 @@ use std::sync::mpsc::Receiver;
 use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant};
 
-use crossterm::{Crossterm, Screen, TerminalInput, InputEvent};
+use crossterm::{Crossterm, AlternateScreen, InputEvent, RawScreen};
 
 use crate::config::Config;
 use crate::renderer::types::*;
@@ -41,25 +41,30 @@ pub enum InputAction {
 
 pub fn interactive_renderer(config: Arc<Config>, rx: Receiver<LogEntry>) -> JoinHandle<()> {
   thread::Builder::new().name("interactive".to_string()).spawn(move || {
-    let mut rs = Rc::new(RenderState::new(config));
-
-    let screen = Screen::default();
-    let alt = match screen.enable_alternate_modes(true) {
-      Ok(alternate) => alternate,
+    // can't drop _screen or we'll leave raw mode
+    let _screen = match RawScreen::into_raw_mode() {
+      Ok(screen) => screen,
       Err(e) => {
-        eprintln!("error opening alternate mode: {:?}", e);
+        eprintln!("error opening raw mode: {:?}", e);
         return;
       }
     };
 
-    let crossterm = Crossterm::from_screen(&alt.screen);
+    // we don't enable raw mode here via to_alternate(true) as it can mask the
+    // source of errors (opening alternate screen vs opening raw)
+    if let Err(e) = AlternateScreen::to_alternate(false) {
+      eprintln!("error opening alternate mode: {:?}", e);
+      return;
+    };
+
+    let crossterm = Crossterm::new();
     let cursor = crossterm.cursor();
     let terminal = crossterm.terminal();
-
-    let input = TerminalInput::from_output(&alt.screen.stdout);
+    let input = crossterm.input();
 
     let mut stdin = input.read_async();
 
+    let mut rs = Rc::new(RenderState::new(config));
     let mut last_render: Option<Instant> = None;
     let (mut last_width, mut last_height) = (0, 0);
     'outer: loop {
@@ -117,7 +122,6 @@ pub fn interactive_renderer(config: Arc<Config>, rx: Receiver<LogEntry>) -> Join
       };
 
       if dirty || force_refresh {
-        // TODO actually render
         rs = log::render(rs.clone(), &terminal, &cursor).unwrap();
         rs = bar::render(rs.clone(), &terminal, &cursor).unwrap();
 
