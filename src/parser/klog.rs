@@ -28,7 +28,7 @@ fn map_klog_level(level: &str) -> Option<LogLevel> {
 // https://github.com/kubernetes/klog/blob/master/klog.go#L592-L602
 pub fn parse_klog(
   _config: Arc<Config>, line: &str, meta: Option<ReaderMetadata>
-) -> Result<Option<Message>, Box<Error>> {
+) -> Result<Option<Message>, Box<dyn Error>> {
   lazy_static! {
     static ref RE: Regex = Regex::new(
       r"^([A-Z])(\d{4} \d{2}:\d{2}:[\d\.]+)\s+(\d+) ([\S.]+:\d+)] (.+)$"

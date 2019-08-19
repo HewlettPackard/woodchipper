@@ -100,7 +100,7 @@ impl LogState {
 
 fn render_int(
   state_mut: &mut RenderState, terminal: &Terminal, cursor: &TerminalCursor
-) -> Result<(), Box<Error>> {
+) -> Result<(), Box<dyn Error>> {
   // TODO: handle weak refs better, we're just blindly unwrapping right now
   // (at the moment they should never dealloc but eventually some max log size
   // should be implemented)
@@ -307,7 +307,7 @@ fn render_int(
 
 pub fn render(
   mut state: RcState, terminal: &Terminal, cursor: &TerminalCursor
-) -> Result<RcState, Box<Error>> {
+) -> Result<RcState, Box<dyn Error>> {
   // ugly dancing around the borrow checker
   // the &mut needs to be dropped so we can return the new state
   {

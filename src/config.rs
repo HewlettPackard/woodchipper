@@ -57,7 +57,7 @@ impl RendererType {
 }
 
 impl FromStr for RendererType {
-  type Err = Box<Error>;
+  type Err = Box<dyn Error>;
 
   fn from_str(s: &str) -> Result<Self, Self::Err> {
     match s {
@@ -114,7 +114,7 @@ impl ReaderType {
 }
 
 impl FromStr for ReaderType {
-  type Err = Box<Error>;
+  type Err = Box<dyn Error>;
 
   fn from_str(s: &str) -> Result<Self, Self::Err> {
     match s {

@@ -70,7 +70,7 @@ impl LogEntry {
 
   pub fn message(
     config: Arc<Config>, line: &str, meta: Option<ReaderMetadata>
-  ) -> Result<Option<LogEntry>, Box<Error>> {
+  ) -> Result<Option<LogEntry>, Box<dyn Error>> {
     let message = match parse(config, &line, meta)? {
       Some(message) => message,
       None => return Ok(None)

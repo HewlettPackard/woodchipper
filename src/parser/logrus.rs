@@ -24,7 +24,7 @@ struct LogrusParser;
 /// regular JSON parser can then parse it normally.
 pub fn logrus_to_document(
   line: &str
-) -> Result<Map<String, Value>, Box<Error>> {
+) -> Result<Map<String, Value>, Box<dyn Error>> {
   let mut pairs = LogrusParser::parse(Rule::logrus, line)?;
   let logrus = pairs.next().ok_or_else(
     || SimpleError::new("unparsable logrus line")
@@ -67,7 +67,7 @@ pub fn logrus_to_document(
 
 pub fn parse_logrus(
   _config: Arc<Config>, line: &str, meta: Option<ReaderMetadata>
-) -> Result<Option<Message>, Box<Error>> {
+) -> Result<Option<Message>, Box<dyn Error>> {
   match logrus_to_document(line) {
     Ok(doc) => {
       if doc.is_empty() {

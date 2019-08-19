@@ -38,7 +38,7 @@ pub struct RenderState {
   pub entries: Rc<RefCell<Vec<Rc<MessageEntry>>>>,
 
   /// A list of filters used to generated `filtered_entries` from `entries`
-  pub filters: Rc<RefCell<Vec<Box<Filter>>>>,
+  pub filters: Rc<RefCell<Vec<Box<dyn Filter>>>>,
 
   /// A Vec of entries filtered from the main list..
   ///
@@ -49,7 +49,7 @@ pub struct RenderState {
   /// if it exists and is valid.
   ///
   /// in a refcell because we can't clone all filter types :/
-  pub highlight_filter: Option<Rc<Box<Filter>>>,
+  pub highlight_filter: Option<Rc<Box<dyn Filter>>>,
 
   /// If true, input EoF has been reached
   pub eof: bool,
@@ -108,7 +108,7 @@ pub fn filter_pass(state: RcState, entry: &MessageEntry) -> bool {
 pub mod actions {
   use super::*;
 
-  pub fn add_filter(mut state: RcState, filter: Box<Filter>) -> RcState {
+  pub fn add_filter(mut state: RcState, filter: Box<dyn Filter>) -> RcState {
     let state_mut = Rc::make_mut(&mut state);
     state_mut.filters.borrow_mut().push(filter);
 
@@ -161,7 +161,7 @@ pub mod actions {
 
   /// updates the temp filter based on user input
   pub fn set_highlight_filter(
-    mut state: RcState, filter: Option<Rc<Box<Filter>>>
+    mut state: RcState, filter: Option<Rc<Box<dyn Filter>>>
   ) -> RcState {
     let state_mut = Rc::make_mut(&mut state);
 

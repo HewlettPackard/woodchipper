@@ -19,7 +19,7 @@ use crate::config::Config;
 /// message to the next parser.
 pub type Parser = fn(
   config: Arc<Config>, line: &str, meta: Option<ReaderMetadata>
-) -> Result<Option<Message>, Box<Error>>;
+) -> Result<Option<Message>, Box<dyn Error>>;
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq)]
 #[serde(rename_all = "lowercase")]

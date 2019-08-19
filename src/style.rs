@@ -250,9 +250,9 @@ impl StyleProfile {
 
 #[derive(Copy, Clone)]
 pub enum StyleProfileKind {
-  Normal,
+  //Normal,
   Selected,
-  Highlighted
+  //Highlighted
 }
 
 #[derive(Debug)]
@@ -281,14 +281,14 @@ impl StyleConfig {
 
   pub fn get_profile(&self, kind: StyleProfileKind) -> &StyleProfile {
     match kind {
-      StyleProfileKind::Normal => &self.normal,
+      //StyleProfileKind::Normal => &self.normal,
       StyleProfileKind::Selected => &self.selected,
-      StyleProfileKind::Highlighted => &self.highlighted
+      //StyleProfileKind::Highlighted => &self.highlighted
     }
   }
 }
 
-fn load_base16(path: &str) -> Result<StyleConfig, Box<Error>> {
+fn load_base16(path: &str) -> Result<StyleConfig, Box<dyn Error>> {
   let expanded_path = shellexpand::full(path)?;
   let file = File::open(&expanded_path.to_string())?;
   let reader = BufReader::new(file);
@@ -298,7 +298,7 @@ fn load_base16(path: &str) -> Result<StyleConfig, Box<Error>> {
 }
 
 impl FromStr for StyleConfig {
-  type Err = Box<Error>;
+  type Err = Box<dyn Error>;
 
   fn from_str(s: &str) -> Result<Self, Self::Err> {
     lazy_static! {

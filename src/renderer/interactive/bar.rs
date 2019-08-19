@@ -33,7 +33,7 @@ impl BarState {
 
 pub fn render(
   state: RcState, terminal: &Terminal, cursor: &TerminalCursor
-) -> Result<RcState, Box<Error>> {
+) -> Result<RcState, Box<dyn Error>> {
   let renderer = match state.bar.active {
     BarType::Status => status_bar::render,
     BarType::Filter => filter_bar::render,

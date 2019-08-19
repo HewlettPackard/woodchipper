@@ -61,7 +61,7 @@ pub fn format_right(state: &RcState) -> (usize, String) {
 
 pub fn render(
   state: RcState, terminal: &Terminal, cursor: &TerminalCursor
-) -> Result<RcState, Box<Error>> {
+) -> Result<RcState, Box<dyn Error>> {
   let (left_len, left) = format_left(&state);
   let (right_len, right) = format_right(&state);
 

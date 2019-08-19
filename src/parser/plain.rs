@@ -51,7 +51,7 @@ fn get_meta_timestamp(meta: &Option<ReaderMetadata>) -> Option<DateTime<Utc>> {
 
 pub fn parse_plain(
   _config: Arc<Config>, line: &str, meta: Option<ReaderMetadata>
-) -> Result<Option<Message>, Box<Error>> {
+) -> Result<Option<Message>, Box<dyn Error>> {
   Ok(Some(Message {
     kind: MessageKind::Plain,
     timestamp: get_meta_timestamp(&meta),

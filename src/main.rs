@@ -36,7 +36,7 @@ mod renderer;
 
 use config::Config;
 
-fn main() -> Result<(), Box<Error>> {
+fn main() -> Result<(), Box<dyn Error>> {
   let config = Arc::new(Config::from_args());
 
   let renderer_impl = config.renderer.get_renderer(Arc::clone(&config));
