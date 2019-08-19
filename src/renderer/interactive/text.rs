@@ -93,7 +93,7 @@ pub fn render(
   state: RcState, text: &TextBuffer,
   terminal: &Terminal, cursor: &TerminalCursor,
   x: u16, y: u16
-) -> Result<(), Box<Error>> {
+) -> Result<(), Box<dyn Error>> {
   // TODO: need x, y as crossterm's cursor.pos() is currently broken:
   // https://github.com/TimonPost/crossterm/issues/122
   // we can use pos and goto once fixed to let the caller position the cursor

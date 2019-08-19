@@ -56,7 +56,7 @@ fn parse_datetime(
 
 fn parse_mapping(
   line: &str, mapping: &RegexMapping, meta: &Option<ReaderMetadata>
-) -> Result<Option<Message>, Box<Error>> {
+) -> Result<Option<Message>, Box<dyn Error>> {
   let caps = match mapping.pattern.captures(line) {
     Some(caps) => caps,
     None => return Ok(None)
@@ -123,7 +123,7 @@ fn parse_mapping(
 pub fn parse_regex(
   config: Arc<Config>,
   line: &str, meta: Option<ReaderMetadata>
-) -> Result<Option<Message>, Box<Error>> {
+) -> Result<Option<Message>, Box<dyn Error>> {
   if let Some(regexes) = &config.regexes {
     for mapping in &regexes.mappings {
       match parse_mapping(line, mapping, &meta) {

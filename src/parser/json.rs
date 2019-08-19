@@ -97,7 +97,7 @@ pub fn parse_document(
   kind: MessageKind,
   doc: Map<String, Value>,
   meta: Option<ReaderMetadata>
-) -> Result<Option<Message>, Box<Error>> {
+) -> Result<Option<Message>, Box<dyn Error>> {
   let mut mapped_fields = HashMap::new();
 
   let timestamp = if let Some((key, timestamp)) = get_timestamp(&doc) {
@@ -152,7 +152,7 @@ pub fn parse_document(
 
 pub fn parse_json(
   _config: Arc<Config>, line: &str, meta: Option<ReaderMetadata>
-) -> Result<Option<Message>, Box<Error>> {
+) -> Result<Option<Message>, Box<dyn Error>> {
   // skip anything that doesn't at least vaguely look like json
   if !line.starts_with('{') || !line.ends_with('}') {
     return Ok(None);

@@ -19,7 +19,7 @@ pub enum FilterMode {
 }
 
 impl FilterMode {
-  pub fn parse(self, filter: &str) -> SimpleResult<Box<Filter>> {
+  pub fn parse(self, filter: &str) -> SimpleResult<Box<dyn Filter>> {
     Ok(match self {
       FilterMode::Text => Box::new(FullTextFilter::new(filter)?),
       FilterMode::Regex => Box::new(RegexFilter::new(filter)?)

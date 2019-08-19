@@ -24,7 +24,7 @@ static PARSERS: &[Parser] = &[
 
 pub fn parse(
   config: Arc<Config>, line: &str, meta: Option<ReaderMetadata>
-) -> Result<Option<Message>, Box<Error>> {
+) -> Result<Option<Message>, Box<dyn Error>> {
   for parser_fn in PARSERS {
     let result = parser_fn(Arc::clone(&config), line, meta.clone());
 

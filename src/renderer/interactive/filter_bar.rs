@@ -33,7 +33,7 @@ impl FilterBarState {
 
 pub fn render(
   state: RcState, terminal: &Terminal, cursor: &TerminalCursor
-) -> Result<RcState, Box<Error>> {
+) -> Result<RcState, Box<dyn Error>> {
   cursor.goto(0, state.height - 1)?;
   terminal.clear(ClearType::CurrentLine)?;
 
