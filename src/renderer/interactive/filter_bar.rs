@@ -17,7 +17,8 @@ use super::InputAction;
 #[derive(Clone)]
 pub struct FilterBarState {
   mode: FilterMode,
-  text: TextBuffer
+  text: TextBuffer,
+  inverted: bool
 }
 
 impl FilterBarState {
@@ -27,7 +28,28 @@ impl FilterBarState {
     FilterBarState {
       mode: FilterMode::Regex,
       text: TextBuffer::new().with_styler(Some(styler)),
+      inverted: false
     }
+  }
+}
+
+fn format_right(state: &RcState) -> String {
+  if state.width < 80 {
+    let inv = if state.filter.inverted { "y" } else { "n" };
+
+    format!(
+      "| m: {} (C-r), i: {} (C-e)",
+      state.filter.mode.name(),
+      inv
+    )
+  } else {
+    let inv = if state.filter.inverted { "yes" } else { "no" };
+
+    format!(
+      "| mode: {} (C-r), invert: {} (C-e)",
+      state.filter.mode.name(),
+      inv
+    )
   }
 }
 
@@ -47,6 +69,15 @@ pub fn render(
     terminal, cursor,
     9, state.height - 1
   )?;
+
+  // note: this will cover up excessively long user input (text module should
+  // support some form of horizontal scrolling?)
+  let right = format_right(&state);
+  let right_len = right.len();
+  if let Some(col) = state.width.checked_sub(right_len as u16) {
+    cursor.goto(col, state.height - 1)?;
+    terminal.write(&style.paint(right))?;
+  }
 
   Ok(state)
 }
@@ -80,7 +111,7 @@ pub fn input(mut state: RcState, key: &KeyEvent) -> (RcState, InputAction) {
       a
     },
     TextInputAction::Submit(a, input) => {
-      match state.filter.mode.parse(&input) {
+      match state.filter.mode.parse(&input, state.filter.inverted) {
         Ok(filter) => {
           state = actions::clear_input(state);
           state = bar::actions::set_active(state, BarType::Status);
@@ -102,7 +133,28 @@ pub fn input(mut state: RcState, key: &KeyEvent) -> (RcState, InputAction) {
     }
   };
 
-  (state, input_action)
+  let final_action = match input_action {
+    InputAction::Unhandled => match key {
+      KeyEvent::Ctrl('r') => {
+        state = actions::next_mode(state);
+        state = actions::update_highlight(state);
+        state = actions::update_style(state);
+
+        InputAction::Rerender
+      },
+      KeyEvent::Ctrl('e') => {
+        state = actions::toggle_inverted(state);
+        state = actions::update_highlight(state);
+        state = actions::update_style(state);
+
+        InputAction::Rerender
+      },
+      _ => InputAction::Unhandled
+    },
+    _ => input_action
+  };
+
+  (state, final_action)
 }
 
 pub mod actions {
@@ -113,7 +165,7 @@ pub mod actions {
 
     let new_filter = if input.is_empty() {
       None
-    } else if let Ok(parsed) = state.filter.mode.parse(&input) {
+    } else if let Ok(parsed) = state.filter.mode.parse(&input, state.filter.inverted) {
       Some(Rc::new(parsed))
     } else {
       None
@@ -128,7 +180,7 @@ pub mod actions {
     let input = &state_mut.filter.text.input;
     let mode = &state_mut.filter.mode;
 
-    let styler = if input.is_empty() || mode.parse(input).is_ok() {
+    let styler = if input.is_empty() || mode.parse(input, state_mut.filter.inverted).is_ok() {
       styler_base(StyleProfileKind::Selected)
     } else {
       styler_error(StyleProfileKind::Selected)
@@ -146,6 +198,20 @@ pub mod actions {
     state_mut.filter.text = text::actions::clear_input(
       state_mut.filter.text.clone()
     );
+
+    state
+  }
+
+  pub fn next_mode(mut state: RcState) -> RcState {
+    let state_mut = Rc::make_mut(&mut state);
+    state_mut.filter.mode = state_mut.filter.mode.next();
+
+    state
+  }
+
+  pub fn toggle_inverted(mut state: RcState) -> RcState {
+    let state_mut = Rc::make_mut(&mut state);
+    state_mut.filter.inverted = !state_mut.filter.inverted;
 
     state
   }

@@ -20,6 +20,7 @@ use super::InputAction;
 pub struct SearchBarState {
   mode: FilterMode,
   text: TextBuffer,
+  inverted: bool,
   filter: Option<Rc<Box<dyn Filter>>>
 }
 
@@ -30,8 +31,29 @@ impl SearchBarState {
     SearchBarState {
       mode: FilterMode::Regex,
       text: TextBuffer::new().with_styler(Some(styler)),
+      inverted: false,
       filter: None
     }
+  }
+}
+
+fn format_right(state: &RcState) -> String {
+  if state.width < 80 {
+    let inv = if state.search.inverted { "y" } else { "n" };
+
+    format!(
+      "| m: {} (C-r), i: {} (C-e)",
+      state.search.mode.name(),
+      inv
+    )
+  } else {
+    let inv = if state.search.inverted { "yes" } else { "no" };
+
+    format!(
+      "| mode: {} (C-r), invert: {} (C-e)",
+      state.search.mode.name(),
+      inv
+    )
   }
 }
 
@@ -57,6 +79,15 @@ pub fn render(
     terminal, cursor,
     7, state.height - 1
   )?;
+
+  // note: this will cover up excessively long user input (text module should
+  // support some form of horizontal scrolling?)
+  let right = format_right(&state);
+  let right_len = right.len();
+  if let Some(col) = state.width.checked_sub(right_len as u16) {
+    cursor.goto(col, state.height - 1)?;
+    terminal.write(&style.paint(right))?;
+  }
 
   Ok(state)
 }
@@ -119,6 +150,24 @@ pub fn input(mut state: RcState, key: &KeyEvent) -> (RcState, InputAction) {
 
         InputAction::Rerender
       },
+      KeyEvent::Ctrl('r') => {
+        state = actions::next_mode(state);
+        state = actions::update_filter(state);
+        state = actions::next_match(state, true);
+        state = actions::update_highlight(state);
+        state = actions::update_style(state);
+
+        InputAction::Rerender
+      },
+      KeyEvent::Ctrl('e') => {
+        state = actions::toggle_inverted(state);
+        state = actions::update_filter(state);
+        state = actions::next_match(state, true);
+        state = actions::update_highlight(state);
+        state = actions::update_style(state);
+
+        InputAction::Rerender
+      },
       _ => InputAction::Unhandled
     },
     _ => input_action
@@ -136,7 +185,7 @@ pub mod actions {
 
     let new_filter = if input.is_empty() {
       None
-    } else if let Ok(parsed) = state.search.mode.parse(&input) {
+    } else if let Ok(parsed) = state.search.mode.parse(&input, state.search.inverted) {
       Some(Rc::new(parsed))
     } else {
       None
@@ -170,7 +219,7 @@ pub mod actions {
     let input = &state_mut.search.text.input;
     let mode = &state_mut.search.mode;
 
-    let styler = if input.is_empty() || mode.parse(input).is_ok() {
+    let styler = if input.is_empty() || mode.parse(input, state_mut.search.inverted).is_ok() {
       styler_base(StyleProfileKind::Selected)
     } else {
       styler_error(StyleProfileKind::Selected)
@@ -278,5 +327,19 @@ pub mod actions {
 
       log::actions::clear_selection(state)
     }
+  }
+
+  pub fn next_mode(mut state: RcState) -> RcState {
+    let state_mut = Rc::make_mut(&mut state);
+    state_mut.search.mode = state_mut.search.mode.next();
+
+    state
+  }
+
+  pub fn toggle_inverted(mut state: RcState) -> RcState {
+    let state_mut = Rc::make_mut(&mut state);
+    state_mut.search.inverted = !state_mut.search.inverted;
+
+    state
   }
 }
