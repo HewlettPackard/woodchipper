@@ -3,7 +3,7 @@ version: 2.1
 jobs:
   build-linux:
     docker:
-      - image: clux/muslrust:1.35.0-stable
+      - image: clux/muslrust:1.38.0-stable
     steps:
       - checkout
       - restore_cache:
@@ -40,7 +40,7 @@ jobs:
 
   build-windows:
     docker:
-      - image: rust:1.35-slim
+      - image: rust:1.38-slim
     
     steps:
       - checkout
@@ -87,7 +87,7 @@ jobs:
 
   publish:
     docker:
-      - image: alpine:3.9
+      - image: alpine:3.10
     steps:
       - run: 
           name: add publish dependencies
@@ -109,7 +109,7 @@ jobs:
             ghr -u HewlettPackard -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -replace ${CIRCLE_TAG} ./artifacts/
   publish-cargo:
     docker:
-      - image: rust:1.35-slim
+      - image: rust:1.38-slim
     steps:
       - checkout
       - run:
