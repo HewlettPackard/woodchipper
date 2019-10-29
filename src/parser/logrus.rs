@@ -179,6 +179,7 @@ mod tests {
       r#"time="2019-07-10T14:14:13.950289Z" level=debug msg="hello world""#
     )).is_ok_containing(json!({
       "kind": "logrus",
+      "raw": "time=\"2019-07-10T14:14:13.950289Z\" level=debug msg=\"hello world\"",
       "timestamp": "2019-07-10T14:14:13.950289Z",
       "level": "debug",
       "text": "hello world",
@@ -195,6 +196,7 @@ mod tests {
       r#"animal=walrus number=8"#
     ))).is_ok_containing(json!({
       "kind": "logrus",
+      "raw": "time=\"2015-03-26T01:27:38-04:00\" level=debug msg=\"Started observing beach\" animal=walrus number=8",
       "timestamp": "2015-03-26T05:27:38Z",
       "level": "debug",
       "text": "Started observing beach",
@@ -214,6 +216,7 @@ mod tests {
       r#"number=100 omg=true"#
     ))).is_ok_containing(json!({
       "kind": "logrus",
+      "raw": "time=\"2015-03-26T01:27:38-04:00\" level=fatal msg=\"The ice breaks!\" err=&{0x2082280c0 map[animal:orca size:9009] 2015-03-26 01:27:38.441574009 -0400 EDT panic It\'s over 9000!} number=100 omg=true",
       "timestamp": "2015-03-26T05:27:38Z",
       "level": "fatal",
       "text": "The ice breaks!",
