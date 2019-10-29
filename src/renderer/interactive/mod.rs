@@ -41,7 +41,7 @@ pub enum InputAction {
 
 pub fn interactive_renderer(config: Arc<Config>, rx: Receiver<LogEntry>) -> JoinHandle<()> {
   thread::Builder::new().name("interactive".to_string()).spawn(move || {
-    let mut rs = Rc::new(RenderState::new(config));
+    let mut rs = Rc::new(RenderState::new(Arc::clone(&config)));
 
     let screen = Screen::default();
     let alt = match screen.enable_alternate_modes(true) {
@@ -51,6 +51,8 @@ pub fn interactive_renderer(config: Arc<Config>, rx: Receiver<LogEntry>) -> Join
         return;
       }
     };
+
+    let sleep_duration_seconds = 1.0f32 / &config.refresh_hz;
 
     let crossterm = Crossterm::from_screen(&alt.screen);
     let cursor = crossterm.cursor();
@@ -124,7 +126,7 @@ pub fn interactive_renderer(config: Arc<Config>, rx: Receiver<LogEntry>) -> Join
         last_render = Some(Instant::now());
       }
 
-      thread::sleep(Duration::from_millis(25));
+      thread::sleep(Duration::from_secs_f32(sleep_duration_seconds));
     }
 
     // attempt to un-hide the cursor on the way out
