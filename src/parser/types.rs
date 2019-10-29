@@ -107,6 +107,9 @@ pub struct Message {
   #[serde(skip_serializing_if = "Option::is_none")]
   pub level: Option<LogLevel>,
 
+  // The raw message content
+  pub raw: String,
+
   /// The message text
   #[serde(skip_serializing_if = "Option::is_none")]
   pub text: Option<String>,

@@ -94,6 +94,7 @@ pub fn get_timestamp(msg: &Map<String, Value>) -> Option<(&str, DateTime<Utc>)> 
 }
 
 pub fn parse_document(
+  line: &str,
   kind: MessageKind,
   doc: Map<String, Value>,
   meta: Option<ReaderMetadata>
@@ -143,6 +144,7 @@ pub fn parse_document(
 
   let message = Message {
     kind,
+    raw: line.to_string(),
     reader_metadata: meta,
     timestamp, level, text, metadata, mapped_fields
   };
@@ -159,7 +161,7 @@ pub fn parse_json(
   }
 
   match serde_json::from_str(line) {
-    Ok(message) => parse_document(MessageKind::Json, message, meta),
+    Ok(message) => parse_document(line, MessageKind::Json, message, meta),
     Err(_) => Ok(None)
   }
 }

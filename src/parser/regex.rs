@@ -111,6 +111,7 @@ fn parse_mapping(
   let message = Message {
     kind: MessageKind::Regex,
     reader_metadata: meta.clone(),
+    raw: line.to_string(),
     timestamp, level, text, metadata,
     mapped_fields: HashMap::new()
   };

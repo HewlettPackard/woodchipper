@@ -56,6 +56,7 @@ pub fn parse_plain(
     kind: MessageKind::Plain,
     timestamp: get_meta_timestamp(&meta),
     level: get_log_level(line),
+    raw: line.to_string(),
     text: Some(String::from(line)),
     metadata: HashMap::new(),
     reader_metadata: meta,

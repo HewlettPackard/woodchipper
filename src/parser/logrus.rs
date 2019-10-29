@@ -73,7 +73,7 @@ pub fn parse_logrus(
       if doc.is_empty() {
         Ok(None)
       } else {
-        parse_document(MessageKind::Logrus, doc, meta)
+        parse_document(line, MessageKind::Logrus, doc, meta)
       }
     },
     Err(_) => Ok(None)
