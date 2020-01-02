@@ -278,6 +278,18 @@ pub struct Config {
   )]
   pub fallback_width: usize,
 
+  /// Maximum refresh rate in frames per second (Hz) for the interactive viewer
+  ///
+  /// Lower values may prevent flickering on slow terminals (though really, stop
+  /// using xterm). May also feel slightly smoother at higher values, though
+  /// most terminals won't render this quickly.
+  #[structopt(
+    long,
+    default_value = "40",
+    env = "WD_REFRESH_HZ"
+  )]
+  pub refresh_hz: f32,
+
   /// Styled output configuration
   ///
   /// Must contain one of the following: `default`, `base16:<path to .yaml>`
@@ -286,6 +298,9 @@ pub struct Config {
 
   /// A path to a regexes config file, which may contain custom parsing regexes
   /// for application-specific log formats.
+  ///
+  /// For more info, see: 
+  /// https://github.com/HewlettPackard/woodchipper/blob/master/doc/customization.md#log-formats
   #[structopt(long, env = "WD_REGEXES")]
   pub regexes: Option<RegexConfig>,
 
