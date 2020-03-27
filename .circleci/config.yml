@@ -65,6 +65,16 @@ jobs:
 
               cargo update -p woodchipper
             fi
+      
+      # adapted from https://github.com/rust-lang/rust/issues/53454#issuecomment-547248821
+      - run:
+          name: fix w64 toolchain
+          command: |
+            src=$(readlink -f $(x86_64-w64-mingw32-gcc -print-file-name=crt2.o))
+            sysroot=$(rustc --print sysroot)
+            w64root="$sysroot/lib/rustlib/x86_64-pc-windows-gnu"
+
+            cp -v "$src" "$w64root/lib/"
       # running unit tests on cross-compiled windows binaries doesn't seem
       # especially productive
       - run:
