@@ -3,7 +3,7 @@ version: 2.1
 jobs:
   build-linux:
     docker:
-      - image: clux/muslrust:1.35.0-stable
+      - image: clux/muslrust:1.42.0-stable
     steps:
       - checkout
       - restore_cache:
@@ -40,7 +40,7 @@ jobs:
 
   build-windows:
     docker:
-      - image: rust:1.35-slim
+      - image: rust:1.42-slim
     
     steps:
       - checkout
@@ -65,6 +65,16 @@ jobs:
 
               cargo update -p woodchipper
             fi
+      
+      # adapted from https://github.com/rust-lang/rust/issues/53454#issuecomment-547248821
+      - run:
+          name: fix w64 toolchain
+          command: |
+            src=$(readlink -f $(x86_64-w64-mingw32-gcc -print-file-name=crt2.o))
+            sysroot=$(rustc --print sysroot)
+            w64root="$sysroot/lib/rustlib/x86_64-pc-windows-gnu"
+
+            cp -v "$src" "$w64root/lib/"
       # running unit tests on cross-compiled windows binaries doesn't seem
       # especially productive
       - run:
@@ -87,7 +97,7 @@ jobs:
 
   publish:
     docker:
-      - image: alpine:3.9
+      - image: alpine:3.11
     steps:
       - run: 
           name: add publish dependencies
@@ -109,7 +119,7 @@ jobs:
             ghr -u HewlettPackard -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -replace ${CIRCLE_TAG} ./artifacts/
   publish-cargo:
     docker:
-      - image: rust:1.35-slim
+      - image: rust:1.42-slim
     steps:
       - checkout
       - run:
