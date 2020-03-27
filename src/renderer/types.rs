@@ -26,6 +26,7 @@ impl MessageEntry {
       kind: MessageKind::Internal,
       timestamp: Some(Utc::now()),
       level: Some(LogLevel::Int),
+      raw: message.to_string(),
       text: Some(message.to_string()),
       metadata: HashMap::new(),
       reader_metadata: None,

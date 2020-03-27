@@ -23,6 +23,7 @@ use crate::renderer;
 pub enum RendererType {
   Auto,
   Plain,
+  Raw,
   Json,
   Styled,
   Interactive
@@ -49,6 +50,7 @@ impl RendererType {
     match *self {
       RendererType::Auto => get_auto_renderer(config),
       RendererType::Plain => renderer::plain_renderer,
+      RendererType::Raw => renderer::raw_renderer,
       RendererType::Json => renderer::json_renderer,
       RendererType::Styled => renderer::styled_renderer,
       RendererType::Interactive => renderer::interactive_renderer,
@@ -63,6 +65,7 @@ impl FromStr for RendererType {
     match s {
       "auto" => Ok(RendererType::Auto),
       "plain" => Ok(RendererType::Plain),
+      "raw" => Ok(RendererType::Raw),
       "json" => Ok(RendererType::Json),
       "styled" => Ok(RendererType::Styled),
       "interactive" => Ok(RendererType::Interactive),

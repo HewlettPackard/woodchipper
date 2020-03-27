@@ -111,6 +111,7 @@ fn parse_mapping(
   let message = Message {
     kind: MessageKind::Regex,
     reader_metadata: meta.clone(),
+    raw: line.to_string(),
     timestamp, level, text, metadata,
     mapped_fields: HashMap::new()
   };
@@ -171,7 +172,8 @@ mod tests {
     );
 
     assert_that!(value).is_ok_containing(json!({
-      "kind": "regex"
+      "kind": "regex",
+      "raw": ""
     }));
   }
 
@@ -185,6 +187,7 @@ mod tests {
 
     assert_that!(value).is_ok_containing(json!({
       "kind": "regex",
+      "raw": "2019-10-01T20:40:49Z",
       "timestamp": "2019-10-01T20:40:49Z"
     }));
   }
@@ -200,6 +203,7 @@ mod tests {
     // input dates are normalized to rfc3339 and utc
     assert_that!(value).is_ok_containing(json!({
       "kind": "regex",
+      "raw": "Tue, 1 Jul 2003 10:52:37 +0200",
       "timestamp": "2003-07-01T08:52:37Z"
     }));
   }
@@ -214,6 +218,7 @@ mod tests {
 
     assert_that!(value).is_ok_containing(json!({
       "kind": "regex",
+      "raw": "foo bar",
       "metadata": {
         "a": "foo",
         "b": "bar"
@@ -231,7 +236,8 @@ mod tests {
 
     // invalid date should be null -> not included in json doc
     assert_that!(value).is_ok_containing(json!({
-      "kind": "regex"
+      "kind": "regex",
+      "raw": "2019-10-01T20:40:49Z"
     }));
   }
 
@@ -258,6 +264,7 @@ mod tests {
 
     assert_that!(value).is_ok_containing(json!({
       "kind": "regex",
+      "raw": "I0703 17:19:11.688460       1 controller.go:293] hello world",
       "level": "info",
       "text": "hello world",
       "timestamp": "2019-07-03T17:19:11.688460Z",
@@ -308,6 +315,7 @@ mod tests {
 
     assert_that!(value).is_ok_containing(json!({
       "kind": "regex",
+      "raw": "2019-07-03 12:02:13,977 - DEBUG    - test.py:9 - this is a debug message",
       "level": "debug",
       "text": "this is a debug message",
       "timestamp": "2019-07-03T12:02:13Z",

@@ -82,6 +82,7 @@ pub fn parse_klog(
     return Ok(Some(Message {
       kind: MessageKind::Klog,
       reader_metadata: meta,
+      raw: line.to_string(),
       text: Some(text.to_string()),
 
       timestamp, level, metadata,
