@@ -256,11 +256,13 @@ mod tests {
       &None
     );
 
+    let current_year = Utc::now().year();
+
     assert_that!(value).is_ok_containing(json!({
       "kind": "regex",
       "level": "info",
       "text": "hello world",
-      "timestamp": "2019-07-03T17:19:11.688460Z",
+      "timestamp": format!("{}-07-03T17:19:11.688460Z", current_year),
       "metadata": {
         "threadId": "1",
         "file": "controller.go:293"
