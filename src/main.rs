@@ -62,11 +62,28 @@ fn main() -> Result<(), Box<dyn Error>> {
   let (exit_req_tx, exit_req_rx) = channel();
   let (exit_resp_tx, exit_resp_rx) = channel();
 
-  reader_impl(
-    Arc::clone(&config),
-    entry_tx,
-    exit_req_rx, exit_resp_tx
-  );
+  if config.ordered || config.buffer_ms.is_some() {
+    // if --ordered or --buffer-ms, wrap the reader in read_ordered
+    let (ord_tx, ord_rx) = channel();
+
+    reader_impl(
+      Arc::clone(&config),
+      ord_tx,
+      exit_req_rx, exit_resp_tx
+    );
+
+    reader::read_ordered(
+      Arc::clone(&config),
+      ord_rx,
+      entry_tx
+    );
+  } else {
+    reader_impl(
+      Arc::clone(&config),
+      entry_tx,
+      exit_req_rx, exit_resp_tx
+    );
+  }
 
   renderer.join().expect("renderer thread did not exit cleanly");
   

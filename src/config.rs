@@ -292,6 +292,21 @@ pub struct Config {
   #[structopt(long, env = "WD_REGEXES")]
   pub regexes: Option<RegexConfig>,
 
+  /// If set, attempts to ensure messages are displayed in semantic order by
+  /// placing them in a priority queue for a short period before being written
+  /// to the renderer. By default, messages are held for one second; this can be
+  /// overridden with `--buffer-ms`.
+  ///
+  /// Particularly useful when paired with readers that ingest from multiple
+  /// sources at once, like the Kubernetes reader.
+  #[structopt(long, short = "o")]
+  pub ordered: bool,
+
+  /// Sets the length of time, in milliseconds, that messages should be buffered
+  /// to attempt to reorder them. If set, implies `--ordered`.
+  #[structopt(long)]
+  pub buffer_ms: Option<u64>,
+
   #[structopt(flatten)]
   pub kubernetes: KubernetesConfig
 }
