@@ -7,7 +7,7 @@ categories = ["command-line-utilities", "development-tools", "development-tools:
 homepage = "https://github.com/HewlettPackard/woodchipper/"
 repository = "https://github.com/HewlettPackard/woodchipper/"
 description = "An interactive command-line log processor"
-exclude = [".circleci/**/*"]
+exclude = [".circleci/**/*", ".github/**/*"]
 readme = "README.md"
 
 # NOTE: do not change the version here, it will be patched by the deployment job

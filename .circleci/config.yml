@@ -3,7 +3,7 @@ version: 2.1
 jobs:
   build-linux:
     docker:
-      - image: clux/muslrust:1.42.0-stable
+      - image: clux/muslrust:1.66.1-stable
     steps:
       - checkout
       - restore_cache:
@@ -40,8 +40,8 @@ jobs:
 
   build-windows:
     docker:
-      - image: rust:1.42-slim
-    
+      - image: rust:1.66.1-slim
+
     steps:
       - checkout
       - restore_cache:
@@ -65,7 +65,7 @@ jobs:
 
               cargo update -p woodchipper
             fi
-      
+
       # adapted from https://github.com/rust-lang/rust/issues/53454#issuecomment-547248821
       - run:
           name: fix w64 toolchain
@@ -97,9 +97,9 @@ jobs:
 
   publish:
     docker:
-      - image: alpine:3.11
+      - image: alpine:3.17.1
     steps:
-      - run: 
+      - run:
           name: add publish dependencies
           command: apk add ca-certificates tar curl
       - attach_workspace:
@@ -108,7 +108,7 @@ jobs:
           name: fetch ghr
           command: |
             set -x
-            ghr_url="https://github.com/tcnksm/ghr/releases/download/v0.12.1/ghr_v0.12.1_linux_amd64.tar.gz"
+            ghr_url="https://github.com/tcnksm/ghr/releases/download/v0.16.0/ghr_v0.16.0_linux_amd64.tar.gz"
 
             cd /usr/local/bin/
             curl -SsLf "$ghr_url" | tar zxvf - --strip=1 --wildcards 'ghr_*/ghr'
@@ -119,7 +119,7 @@ jobs:
             ghr -u HewlettPackard -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -replace ${CIRCLE_TAG} ./artifacts/
   publish-cargo:
     docker:
-      - image: rust:1.42-slim
+      - image: rust:1.66.1-slim
     steps:
       - checkout
       - run:
