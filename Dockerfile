@@ -1,4 +1,4 @@
-FROM alpine:3.17.1 as kubectl
+FROM alpine:3.18.0 as kubectl
 
 ARG KUBECTL_VERSION=v1.23.15
 
