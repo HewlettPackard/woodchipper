@@ -7,7 +7,7 @@ RUN apk add --no-cache curl && \
     "https://storage.googleapis.com/kubernetes-release/release/$KUBECTL_VERSION/bin/linux/amd64/kubectl" \
     -o /usr/local/bin/kubectl
 
-FROM clux/muslrust:1.66.1-stable as builder
+FROM clux/muslrust:1.70.0-stable as builder
 
 COPY src/ /app/src
 COPY Cargo.toml Cargo.lock /app/
