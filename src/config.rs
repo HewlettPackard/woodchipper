@@ -71,7 +71,7 @@ impl FromStr for RendererType {
       "interactive" => Ok(RendererType::Interactive),
       _ => bail!(format!("invalid renderer type: {}", s))
     }
-  } 
+  }
 }
 
 fn get_auto_reader(config: Arc<Config>) -> reader::Reader {
@@ -86,7 +86,7 @@ fn get_auto_reader(config: Arc<Config>) -> reader::Reader {
     }
   }
 
-  if config.kubernetes.namespace.is_some() {
+  if !config.kubernetes.namespaces.is_empty() {
     return reader::read_kubernetes_selector;
   }
 
@@ -136,17 +136,17 @@ impl FromStr for ReaderType {
 #[structopt(rename_all = "kebab-case")]
 pub struct KubernetesConfig {
   /// kubectl path override
-  /// 
+  ///
   /// Path to kubectl. If unset, searches $PATH.
   #[structopt(long, short = "k", env = "WD_KUBECTL")]
   pub kubectl: Option<String>,
 
-  /// Kubernetes namespace to use read
-  #[structopt(long, short = "n", env = "WD_NAMESPACE")]
-  pub namespace: Option<String>,
+  /// Kubernetes namespace to read. May be repeated for multiple namespaces.
+  #[structopt(long = "namespace", short = "n", env = "WD_NAMESPACE")]
+  pub namespaces: Vec<String>,
 
   /// Local kubernetes proxy port
-  /// 
+  ///
   /// A kubernetes API proxy will be spawned on this port over the loopback
   /// interface. If unset, a random port will be selected.
   #[structopt(long, short = "p", env = "WD_K8S_PORT")]
@@ -235,7 +235,7 @@ impl FromStr for RegexConfig {
 )]
 pub struct Config {
   /// Renderer to use, one of: auto, plain, json, styled, interactive
-  /// 
+  ///
   /// If auto, will is determined by terminal and whether or not output will be
   /// redirected. Automatic preference may be overridden with
   /// --preferred-renderer, otherwise --renderer will force use of the given
@@ -247,7 +247,7 @@ pub struct Config {
   ///
   /// When --renderer=auto, this controls the preferred default renderer if no
   /// conditions exist that would otherwise select a different renderer.
-  /// 
+  ///
   /// For example, if you dislike the interactive renderer but still wish to
   /// automatically fall back to plaintext output when piped, use
   /// --preferred-renderer=styled.

@@ -22,14 +22,17 @@ use crate::parser::util::normalize_datetime;
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 struct Container {
+  namespace: String,
   pod: String,
   container: String,
   siblings: usize
 }
 
 impl Container {
-  pub fn new(pod: String, container: String, siblings: usize) -> Self {
-    Container { pod, container, siblings }
+  pub fn new(
+    namespace: String, pod: String, container: String, siblings: usize
+  ) -> Self {
+    Container { namespace, pod, container, siblings }
   }
 }
 
@@ -139,7 +142,9 @@ fn get_containers(pod: &KubernetesPod) -> Vec<Container> {
   let siblings = pod.spec.containers.len();
   for container in &pod.spec.containers {
     ret.push(Container::new(
-      pod_name.clone(), container.name.clone(),
+      pod.metadata.namespace.clone(),
+      pod_name.clone(),
+      container.name.clone(),
       siblings
     ));
   }
@@ -232,7 +237,7 @@ fn wrap_watch(
       ))
       .query(&query)
       .send().map_err(SimpleError::from)?;
-    
+
     if !response.status().is_success() {
       return Err(SimpleError::new("failed to list pods in namespace"))
     }
@@ -388,7 +393,7 @@ fn parse_line<'a>(
 
 fn follow_log(
   config: Arc<Config>,
-  namespace: String, port: u16,
+  port: u16,
   container: Container,
   tx: Sender<LogEntry>
 ) {
@@ -417,7 +422,7 @@ fn follow_log(
       }
 
       // check to make sure the container still exists
-      if should_stop_following(&namespace, port, &container, tx.clone()) {
+      if should_stop_following(&container.namespace, port, &container, tx.clone()) {
         break;
       }
 
@@ -434,7 +439,7 @@ fn follow_log(
       let maybe_response = client
         .get(&format!(
           "http://localhost:{port}/api/v1/namespaces/{namespace}/pods/{pod}/log",
-          port = port, namespace = namespace, pod = &container.pod
+          port = port, namespace = container.namespace, pod = &container.pod
         ))
         .query(&query)
         .send();
@@ -507,7 +512,7 @@ fn follow_log(
       thread::sleep(Duration::from_millis(500));
 
       // decide if we should restart the log
-      if should_stop_following(&namespace, port, &container, tx.clone()) {
+      if should_stop_following(&container.namespace, port, &container, tx.clone()) {
         break;
       }
     }
@@ -539,7 +544,7 @@ fn spawn_kubectl(config: Arc<Config>) -> SimpleResult<(Popen, u16)> {
     ..Default::default()
   }).map_err(SimpleError::from)?;
 
-  // wait a bit to see if it exits  
+  // wait a bit to see if it exits
   thread::sleep(Duration::from_millis(250));
 
   if child.poll().is_some() {
@@ -565,7 +570,7 @@ fn kubectl_get_namespace() -> SimpleResult<String> {
     .stderr(Redirection::Pipe)
     .capture()
     .map_err(SimpleError::from)?;
-  
+
   if data.success() {
     let output = data.stdout_str();
     if output.is_empty() {
@@ -581,6 +586,14 @@ fn kubectl_get_namespace() -> SimpleResult<String> {
   }
 }
 
+fn list_namespaces(config: &Config) -> SimpleResult<Vec<String>> {
+  if !config.kubernetes.namespaces.is_empty() {
+    return Ok(config.kubernetes.namespaces.clone())
+  } else {
+    return Ok(vec![kubectl_get_namespace()?])
+  }
+}
+
 pub fn read_kubernetes_selector(
   config: Arc<Config>,
   tx: Sender<LogEntry>,
@@ -588,21 +601,17 @@ pub fn read_kubernetes_selector(
   exit_resp_tx: Sender<()>
 ) -> JoinHandle<SimpleResult<()>> {
   thread::Builder::new().name("read_kubernetes_selector".to_string()).spawn(move || {
-    let namespace = if let Some(namespace) = &config.kubernetes.namespace {
-      namespace.clone()
-    } else {
-      kubectl_get_namespace()?
-    };
-
     let (mut kubectl, port) = spawn_kubectl(Arc::clone(&config))?;
     tx.send(LogEntry::internal(
       &format!("started kubernetes api proxy on port {}", port)
     )).ok();
 
     let (event_tx, event_rx) = channel();
-    watch_events(
-      Arc::clone(&config), namespace.clone(), port, tx.clone(), event_tx
-    );
+    for namespace in list_namespaces(&config)? {
+      watch_events(
+        Arc::clone(&config), namespace.clone(), port, tx.clone(), event_tx.clone()
+      );
+    }
 
     loop {
       thread::sleep(Duration::from_millis(100));
@@ -616,7 +625,6 @@ pub fn read_kubernetes_selector(
           PodEvent::Added(container) => {
             follow_log(
               Arc::clone(&config),
-              namespace.clone(),
               port,
               container,
               tx.clone()
